@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'snapshot.dart';
+import 'widget_bridge.dart';
 
 void main() => runApp(const QuotaHubApp());
 
@@ -33,6 +36,50 @@ class _DashboardState extends State<Dashboard> {
   late final Future<List<DemoCase>> _cases = rootBundle.loadString('assets/cases.json').then(parseDemoCases);
   String _selected = 'overview';
   bool _hideMoney = false;
+  String? _widgetAccountId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetBridge.listen(_openWidgetAccount);
+    unawaited(_loadWidgetTarget());
+  }
+
+  Future<void> _loadWidgetTarget() async {
+    final hidden = await WidgetBridge.savedHideMoney();
+    if (!mounted) return;
+    setState(() => _hideMoney = hidden);
+    final accountId = await WidgetBridge.initialAccount();
+    if (!mounted) return;
+    if (accountId == null) {
+      await WidgetBridge.showScenario('overview', hideMoney: _hideMoney);
+    } else {
+      _openWidgetAccount(accountId);
+    }
+  }
+
+  void _openWidgetAccount(String id) {
+    if (!mounted) return;
+    final scenario = switch (id) {
+      'deepseek_cached' => 'stale',
+      'subscription_missing' => 'unknown',
+      'aliyun_failure' => 'first_failure',
+      _ => 'overview',
+    };
+    setState(() {
+      _selected = scenario;
+      _widgetAccountId = id;
+    });
+    unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
+  }
+
+  void _selectScenario(String scenario) {
+    setState(() {
+      _selected = scenario;
+      _widgetAccountId = null;
+    });
+    unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -40,7 +87,10 @@ class _DashboardState extends State<Dashboard> {
           IconButton(
             tooltip: _hideMoney ? '显示金额' : '隐藏金额',
             icon: Icon(_hideMoney ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-            onPressed: () => setState(() => _hideMoney = !_hideMoney),
+            onPressed: () {
+              setState(() => _hideMoney = !_hideMoney);
+              unawaited(WidgetBridge.showScenario(_selected, hideMoney: _hideMoney));
+            },
           ),
         ]),
         body: FutureBuilder<List<DemoCase>>(
@@ -65,6 +115,10 @@ class _DashboardState extends State<Dashboard> {
                 Text('账户概览', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),
                 const Text('三类账户共用一份版本化快照。金额与流量均为虚构示例。'),
+                if (_widgetAccountId != null) ...[
+                  const SizedBox(height: 10),
+                  const Text('已从桌面组件打开对应账户', style: TextStyle(color: Color(0xFF8FD8BA))),
+                ],
                 const SizedBox(height: 20),
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   for (final (key, label) in [
@@ -74,7 +128,7 @@ class _DashboardState extends State<Dashboard> {
                     ChoiceChip(
                       label: Text(label),
                       selected: _selected == key,
-                      onSelected: (_) => setState(() => _selected = key),
+                      onSelected: (_) => _selectScenario(key),
                     ),
                 ]),
                 const SizedBox(height: 24),
@@ -83,7 +137,11 @@ class _DashboardState extends State<Dashboard> {
                   final width = (constraints.maxWidth - (columns - 1) * 14) / columns;
                   return Wrap(spacing: 14, runSpacing: 14, children: [
                     for (final account in accounts)
-                      SizedBox(width: width, child: _AccountCard(account: account, hideMoney: _hideMoney)),
+                      SizedBox(width: width, child: _AccountCard(
+                        account: account,
+                        hideMoney: _hideMoney,
+                        selected: account.id == _widgetAccountId,
+                      )),
                   ]);
                 }),
                 const SizedBox(height: 24),
@@ -96,9 +154,10 @@ class _DashboardState extends State<Dashboard> {
 }
 
 class _AccountCard extends StatelessWidget {
-  const _AccountCard({required this.account, required this.hideMoney});
+  const _AccountCard({required this.account, required this.hideMoney, required this.selected});
   final Account account;
   final bool hideMoney;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +169,10 @@ class _AccountCard extends StatelessWidget {
     };
     return Card(
       margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: selected ? const Color(0xFF8FD8BA) : Colors.transparent, width: 2),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
