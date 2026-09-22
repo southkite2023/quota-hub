@@ -34,8 +34,8 @@ test('duplicate account and metric keys are rejected', () => {
   snapshot.accounts[0].metrics.push(structuredClone(snapshot.accounts[0].metrics[0]));
   assert.match(validateSnapshot(snapshot).join(' '), /duplicate/);
 });
-test('secrets and arbitrary payload fields are not validated as part of the contract', () => {
+test('secrets and arbitrary payload fields are rejected', () => {
   const { name, ...snapshot } = clone('zero');
   snapshot.accounts[0].apiKey = 'secret';
-  assert.deepEqual(validateSnapshot(snapshot), []);
+  assert.match(validateSnapshot(snapshot).join(' '), /apiKey unexpected/);
 });
