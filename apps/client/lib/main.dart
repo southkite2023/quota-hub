@@ -46,10 +46,13 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Future<void> _loadWidgetTarget() async {
+    final hidden = await WidgetBridge.savedHideMoney();
+    if (!mounted) return;
+    setState(() => _hideMoney = hidden);
     final accountId = await WidgetBridge.initialAccount();
     if (!mounted) return;
     if (accountId == null) {
-      await WidgetBridge.showScenario('overview');
+      await WidgetBridge.showScenario('overview', hideMoney: _hideMoney);
     } else {
       _openWidgetAccount(accountId);
     }
@@ -67,7 +70,7 @@ class _DashboardState extends State<Dashboard> {
       _selected = scenario;
       _widgetAccountId = id;
     });
-    unawaited(WidgetBridge.showScenario(scenario));
+    unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
   }
 
   void _selectScenario(String scenario) {
@@ -75,7 +78,7 @@ class _DashboardState extends State<Dashboard> {
       _selected = scenario;
       _widgetAccountId = null;
     });
-    unawaited(WidgetBridge.showScenario(scenario));
+    unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
   }
 
   @override
@@ -84,7 +87,10 @@ class _DashboardState extends State<Dashboard> {
           IconButton(
             tooltip: _hideMoney ? '显示金额' : '隐藏金额',
             icon: Icon(_hideMoney ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-            onPressed: () => setState(() => _hideMoney = !_hideMoney),
+            onPressed: () {
+              setState(() => _hideMoney = !_hideMoney);
+              unawaited(WidgetBridge.showScenario(_selected, hideMoney: _hideMoney));
+            },
           ),
         ]),
         body: FutureBuilder<List<DemoCase>>(
