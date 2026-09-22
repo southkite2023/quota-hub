@@ -20,12 +20,17 @@ class MainActivity : FlutterActivity() {
                         result.error("INVALID_SNAPSHOT", "Expected a version 1 demo snapshot", null)
                     } else {
                         getSharedPreferences("quota_widget", MODE_PRIVATE).edit()
-                            .putString("snapshot", snapshot).apply()
+                            .putString("snapshot", snapshot)
+                            .putBoolean("hideMoney", call.argument<Boolean>("hideMoney") ?: false)
+                            .apply()
                         QuotaWidgetProvider.refreshAll(this)
                         result.success(null)
                     }
                 }
                 "getWidgetAccount" -> result.success(intent?.getStringExtra("accountId"))
+                "getHideMoney" -> result.success(
+                    getSharedPreferences("quota_widget", MODE_PRIVATE).getBoolean("hideMoney", false)
+                )
                 else -> result.notImplemented()
             }
         }
