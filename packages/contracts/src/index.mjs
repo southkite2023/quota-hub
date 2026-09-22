@@ -5,11 +5,15 @@ const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})
 const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const validDate = value => typeof value === 'string' && iso.test(value) && !Number.isNaN(Date.parse(value));
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const checkFields = (object, allowed, path, issues) => {
+  for (const key of Object.keys(object)) if (!allowed.includes(key)) issues.push(`${path}.${key} unexpected`);
+};
 
 /** Return all structural and semantic errors. Never include input values in errors. */
 export function validateSnapshot(snapshot) {
   const issues = [];
   if (!record(snapshot)) return ['snapshot must be an object'];
+  checkFields(snapshot, ['schemaVersion', 'generatedAt', 'accounts'], 'snapshot', issues);
   if (snapshot.schemaVersion !== 1) issues.push('schemaVersion must be 1');
   if (!validDate(snapshot.generatedAt)) issues.push('generatedAt must be an ISO timestamp with timezone');
   if (!Array.isArray(snapshot.accounts)) return [...issues, 'accounts must be an array'];
@@ -17,6 +21,7 @@ export function validateSnapshot(snapshot) {
   snapshot.accounts.forEach((account, ai) => {
     const at = `accounts[${ai}]`;
     if (!record(account)) { issues.push(`${at} must be an object`); return; }
+    checkFields(account, ['id', 'provider', 'label', 'lastSuccessAt', 'metrics'], at, issues);
     if (typeof account.id !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(account.id)) issues.push(`${at}.id invalid`);
     else if (accountIds.has(account.id)) issues.push(`${at}.id duplicate`);
     else accountIds.add(account.id);
@@ -28,6 +33,7 @@ export function validateSnapshot(snapshot) {
     account.metrics.forEach((metric, mi) => {
       const mt = `${at}.metrics[${mi}]`;
       if (!record(metric)) { issues.push(`${mt} must be an object`); return; }
+      checkFields(metric, ['key', 'kind', 'state', 'value', 'unit', 'errorCode'], mt, issues);
       if (typeof metric.key !== 'string' || !/^[a-z][a-z0-9_]*$/.test(metric.key)) issues.push(`${mt}.key invalid`);
       else if (keys.has(metric.key)) issues.push(`${mt}.key duplicate`);
       else keys.add(metric.key);
