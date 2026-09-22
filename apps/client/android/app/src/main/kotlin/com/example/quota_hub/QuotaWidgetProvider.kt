@@ -22,9 +22,9 @@ class QuotaWidgetProvider : AppWidgetProvider() {
         }
 
         private fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
-            val snapshot = context.getSharedPreferences("quota_widget", Context.MODE_PRIVATE)
-                .getString("snapshot", null)
-            val card = readCard(snapshot)
+            val prefs = context.getSharedPreferences("quota_widget", Context.MODE_PRIVATE)
+            val snapshot = prefs.getString("snapshot", null)
+            val card = readCard(snapshot, prefs.getBoolean("hideMoney", false))
             val views = RemoteViews(context.packageName, R.layout.quota_widget)
             views.setTextViewText(R.id.quota_widget_title, card.title)
             views.setTextViewText(R.id.quota_widget_value, card.value)
@@ -41,7 +41,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
             manager.updateAppWidget(widgetId, views)
         }
 
-        private fun readCard(source: String?): Card {
+        private fun readCard(source: String?, hideMoney: Boolean): Card {
             if (source == null) return Card("Quota Hub · 演示", "打开应用加载数据", "模拟快照 · 未连接真实账户", "deepseek_demo")
             return try {
                 val json = JSONObject(source)
@@ -56,7 +56,11 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                     ?: throw IllegalArgumentException("missing balance")
                 val state = metric.getString("state")
                 val value = when (state) {
-                    "ok", "stale" -> "${metric.getString("value")} ${metric.getString("unit")}"
+                    "ok", "stale" -> if (hideMoney && metric.getString("kind") == "money") {
+                        "•••• ${metric.getString("unit")}"
+                    } else {
+                        "${metric.getString("value")} ${metric.getString("unit")}"
+                    }
                     "unknown" -> "未知"
                     "error" -> "暂不可用"
                     else -> throw IllegalArgumentException("unknown state")
