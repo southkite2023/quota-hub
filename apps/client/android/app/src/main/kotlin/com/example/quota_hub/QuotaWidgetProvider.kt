@@ -55,6 +55,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                     .firstOrNull { it.optString("key") == "available" }
                     ?: throw IllegalArgumentException("missing balance")
                 val state = metric.getString("state")
+                val sourceLabel = if (account.getString("id").endsWith("_demo") || account.getString("id") == "deepseek_cached") "演示数据" else "DeepSeek"
                 val value = when (state) {
                     "ok", "stale" -> if (hideMoney && metric.getString("kind") == "money") {
                         "•••• ${metric.getString("unit")}"
@@ -66,10 +67,10 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                     else -> throw IllegalArgumentException("unknown state")
                 }
                 val status = when (state) {
-                    "ok" -> "演示数据 · 正常"
-                    "stale" -> "演示数据 · 缓存已过期"
-                    "unknown" -> "演示数据 · 未知"
-                    else -> "演示数据 · 查询失败"
+                    "ok" -> "$sourceLabel · 正常"
+                    "stale" -> "$sourceLabel · 缓存已过期"
+                    "unknown" -> "$sourceLabel · 未知"
+                    else -> "$sourceLabel · 查询失败"
                 }
                 Card("DeepSeek API · 可用余额", value, status, account.getString("id"))
             } catch (_: Exception) {

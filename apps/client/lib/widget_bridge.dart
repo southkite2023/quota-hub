@@ -63,4 +63,9 @@ class WidgetBridge {
       debugPrint('Widget snapshot unavailable: ${error.code}');
     }
   }
+
+  static Future<void> showLiveSnapshot(String snapshot, {required bool hideMoney}) async {
+    if (!_android) return;
+    await _channel.invokeMethod<void>('saveSnapshot', {'snapshot': snapshot, 'hideMoney': hideMoney});
+  }
 }
