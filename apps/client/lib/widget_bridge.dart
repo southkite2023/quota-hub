@@ -27,7 +27,17 @@ class WidgetBridge {
     }
   }
 
-  static Future<void> showScenario(String scenario) async {
+  static Future<bool> savedHideMoney() async {
+    if (!_android) return false;
+    try {
+      return await _channel.invokeMethod<bool>('getHideMoney') ?? false;
+    } on PlatformException catch (error) {
+      debugPrint('Widget privacy setting unavailable: ${error.code}');
+      return false;
+    }
+  }
+
+  static Future<void> showScenario(String scenario, {required bool hideMoney}) async {
     if (!_android) return;
     final raw = jsonDecode(await rootBundle.loadString('assets/cases.json')) as List<dynamic>;
     Map<String, dynamic> named(String name) => Map<String, dynamic>.from(
@@ -45,7 +55,10 @@ class WidgetBridge {
       'accounts': accounts,
     });
     try {
-      await _channel.invokeMethod<void>('saveSnapshot', {'snapshot': snapshot});
+      await _channel.invokeMethod<void>('saveSnapshot', {
+        'snapshot': snapshot,
+        'hideMoney': hideMoney,
+      });
     } on PlatformException catch (error) {
       debugPrint('Widget snapshot unavailable: ${error.code}');
     }
