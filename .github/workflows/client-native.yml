@@ -1,0 +1,75 @@
+name: Flutter native build checks
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flutter SDK
+        run: |
+          git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Build Android demo APK
+        working-directory: apps/client
+        run: |
+          flutter create --platforms=android .
+          flutter pub get
+          flutter build apk --debug
+      - name: Save Android demo APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: quota-hub-android-debug
+          path: apps/client/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flutter SDK
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "$env:RUNNER_TEMP\flutter"
+          Add-Content -Path $env:GITHUB_PATH -Value "$env:RUNNER_TEMP\flutter\bin"
+      - name: Build Windows demo app
+        working-directory: apps/client
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --platforms=windows .
+          flutter pub get
+          flutter build windows
+      - name: Save Windows demo bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: quota-hub-windows-demo
+          path: apps/client/build/windows/x64/runner/Release/
+          if-no-files-found: error
+          retention-days: 7
+
+  apple:
+    runs-on: macos-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flutter SDK
+        run: |
+          git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Build macOS and iOS simulator demos
+        working-directory: apps/client
+        run: |
+          flutter config --enable-macos-desktop
+          flutter create --platforms=macos,ios .
+          flutter pub get
+          flutter build macos --debug
+          flutter build ios --simulator --debug

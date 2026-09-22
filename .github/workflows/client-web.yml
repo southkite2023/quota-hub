@@ -1,0 +1,24 @@
+name: Flutter client prototype
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep demo asset in sync
+        run: node scripts/sync-client-fixtures.mjs --check
+      - name: Install Flutter SDK
+        run: |
+          git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Generate web runner and verify client
+        working-directory: apps/client
+        run: |
+          flutter config --enable-web
+          flutter create --platforms=web .
+          flutter pub get
+          flutter analyze lib
+          flutter build web

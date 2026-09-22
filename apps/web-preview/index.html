@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0d14">
+  <meta name="description" content="Quota Hub 余量看板的模拟数据预览。">
+  <title>Quota Hub · 余量看板演示</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="侧边导航">
+      <a class="brand" href="#top" aria-label="Quota Hub 首页"><span class="brand-mark">Q<span>·</span></span><span>QUOTA <strong>HUB</strong><small>YOUR BALANCE, IN FOCUS</small></span></a>
+      <div class="nav-label">工作空间</div>
+      <a class="nav-item current" href="#top"><span class="nav-icon">▦</span> 总览 <span class="nav-arrow">↗</span></a>
+      <a class="nav-item" href="#accounts"><span class="nav-icon">◫</span> 我的账户 <span class="nav-count">03</span></a>
+      <div class="sidebar-bottom"><span class="live-dot"></span> 本地演示模式 <small>未连接任何真实账户</small></div>
+    </aside>
+
+    <main id="top" class="main">
+      <header class="topbar"><div class="crumb">WORKSPACE <span>/</span> OVERVIEW</div><div class="top-right"><span class="demo-pill">● DEMO MODE</span><span class="avatar" aria-label="演示用户">Y</span></div></header>
+      <div class="content">
+        <div class="intro"><div><div class="eyebrow"><span class="eyebrow-line"></span> PERSONAL COMMAND CENTER <span class="edition">/ 001</span></div><h1>所有余量，<em>一目了然。</em></h1><p>一个界面，查看 API 余额、订阅流量和云服务账户。</p></div><div class="intro-actions"><button id="privacy" class="button subtle" type="button" aria-pressed="false"><span aria-hidden="true">◉</span> <span>隐藏金额</span></button><button id="refresh" class="button primary" type="button">↻ <span>重载演示数据</span></button></div></div>
+        <div class="notice" role="note"><span class="notice-icon">◇</span><div><strong>交互原型 · 全部为虚构数据</strong><span>切换下方场景查看各类状态如何呈现。页面不连接供应商，也不读取你的账户。</span></div><span class="notice-tag">PROTOTYPE / V0.1</span></div>
+        <section class="overview" aria-label="账户概况"><div class="overview-card"><span class="stat-label">已展示账户 <span>↗</span></span><div class="stat-number" id="account-count">03<span> / ACCOUNTS</span></div><div class="stat-foot">DEEPSEEK · SUBSCRIPTION · ALIYUN</div></div><div class="overview-card"><span class="stat-label">已知指标 <span>↗</span></span><div class="stat-number" id="known-count">05<span> / METRICS</span></div><div class="stat-foot">按指标分别记录状态</div></div><div class="overview-card accent"><span class="stat-label">数据来源 <span>↗</span></span><div class="stat-number">01<span> / SNAPSHOT</span></div><div class="stat-foot">快照协议 <span class="green">SCHEMA V1</span></div></div></section>
+        <section id="accounts" class="accounts"><div class="section-top"><div><span class="section-kicker">01 / CONNECTED SERVICES</span><h2>账户概览 <span id="account-heading-count">03</span></h2></div><div class="snapshot-time" id="snapshot-time"></div></div>
+          <div class="scenario" aria-label="演示场景"><span class="scenario-label">查看状态</span><div id="scenario-options" class="scenario-options" role="group" aria-label="选择演示场景"></div></div>
+          <div id="cards" class="cards" aria-live="polite"></div>
+        </section>
+        <footer><span>© 2026 QUOTA HUB <span class="footer-sep">/</span> OPEN SOURCE PROJECT</span><span>演示快照 · 不含真实凭据 <span class="footer-sep">/</span> <a href="https://github.com/southkite2023/quota-hub" target="_blank" rel="noopener noreferrer">VIEW ON GITHUB ↗</a></span></footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
