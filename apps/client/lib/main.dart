@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'snapshot.dart';
+import 'live_snapshot.dart';
 import 'widget_bridge.dart';
 
 void main() => runApp(const QuotaHubApp());
@@ -37,12 +39,45 @@ class _DashboardState extends State<Dashboard> {
   String _selected = 'overview';
   bool _hideMoney = false;
   String? _widgetAccountId;
+  Account? _liveAccount;
+  String? _liveRaw;
+  String? _liveError;
+  bool _loadingLive = false;
 
   @override
   void initState() {
     super.initState();
     WidgetBridge.listen(_openWidgetAccount);
     unawaited(_loadWidgetTarget());
+    if (liveConfigured) unawaited(_refreshLive());
+  }
+
+  Future<void> _refreshLive() async {
+    if (_loadingLive) return;
+    setState(() { _loadingLive = true; _liveError = null; });
+    try {
+      final (account, raw) = await fetchDeepSeek();
+      if (!mounted) return;
+      setState(() { _liveAccount = account; _liveRaw = raw; });
+      await WidgetBridge.showLiveSnapshot(raw, hideMoney: _hideMoney);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _liveError = '连接失败；请检查服务地址、只读令牌和网络。';
+        _liveAccount = null;
+        _liveRaw = null;
+      });
+      final failed = jsonEncode({
+        'schemaVersion': 1, 'generatedAt': DateTime.now().toUtc().toIso8601String(),
+        'accounts': [{
+          'id': 'deepseek_cny', 'provider': 'deepseek', 'label': 'DeepSeek API · CNY', 'lastSuccessAt': null,
+          'metrics': [{'key': 'available', 'kind': 'money', 'state': 'error', 'value': null, 'unit': 'CNY', 'errorCode': 'provider_unavailable'}],
+        }],
+      });
+      await WidgetBridge.showLiveSnapshot(failed, hideMoney: _hideMoney);
+    } finally {
+      if (mounted) setState(() => _loadingLive = false);
+    }
   }
 
   Future<void> _loadWidgetTarget() async {
@@ -52,7 +87,7 @@ class _DashboardState extends State<Dashboard> {
     final accountId = await WidgetBridge.initialAccount();
     if (!mounted) return;
     if (accountId == null) {
-      await WidgetBridge.showScenario('overview', hideMoney: _hideMoney);
+      if (!liveConfigured) await WidgetBridge.showScenario('overview', hideMoney: _hideMoney);
     } else {
       _openWidgetAccount(accountId);
     }
@@ -70,7 +105,7 @@ class _DashboardState extends State<Dashboard> {
       _selected = scenario;
       _widgetAccountId = id;
     });
-    unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
+    if (!liveConfigured) unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
   }
 
   void _selectScenario(String scenario) {
@@ -78,7 +113,7 @@ class _DashboardState extends State<Dashboard> {
       _selected = scenario;
       _widgetAccountId = null;
     });
-    unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
+    if (!liveConfigured) unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
   }
 
   @override
@@ -89,9 +124,14 @@ class _DashboardState extends State<Dashboard> {
             icon: Icon(_hideMoney ? Icons.visibility_off_outlined : Icons.visibility_outlined),
             onPressed: () {
               setState(() => _hideMoney = !_hideMoney);
-              unawaited(WidgetBridge.showScenario(_selected, hideMoney: _hideMoney));
+              if (liveConfigured && _liveRaw != null) {
+                unawaited(WidgetBridge.showLiveSnapshot(_liveRaw!, hideMoney: _hideMoney));
+              } else if (!liveConfigured) {
+                unawaited(WidgetBridge.showScenario(_selected, hideMoney: _hideMoney));
+              }
             },
           ),
+          if (liveConfigured) IconButton(tooltip: '刷新余额', icon: const Icon(Icons.refresh), onPressed: _loadingLive ? null : _refreshLive),
         ]),
         body: FutureBuilder<List<DemoCase>>(
           future: _cases,
@@ -108,13 +148,22 @@ class _DashboardState extends State<Dashboard> {
               _selected == 'first_failure' ? cases['first_failure']!.accounts[0] : cases['zero']!.accounts[0],
             ];
             if (_selected == 'stale') accounts[0] = cases['stale']!.accounts[0];
+            if (liveConfigured) {
+              accounts[0] = _liveAccount ?? const Account(
+                id: 'deepseek_cny', provider: 'deepseek', label: '等待首次查询', lastSuccessAt: null,
+                metrics: [Metric(key: 'available', kind: 'money', state: MetricState.unknown, value: null, unit: 'CNY')],
+              );
+            }
             return SafeArea(
               child: ListView(padding: const EdgeInsets.all(20), children: [
-                const Text('演示数据 · 未连接真实账户', style: TextStyle(color: Color(0xFF8FD8BA))),
+                Text(liveConfigured ? 'DeepSeek 实时查询 · 另外两项为演示数据' : '演示数据 · 未连接真实账户', style: const TextStyle(color: Color(0xFF8FD8BA))),
+                if (liveConfigured && _loadingLive) const LinearProgressIndicator(),
+                if (liveConfigured && _liveError != null) Text(_liveError!, style: const TextStyle(color: Color(0xFFFFC77D))),
+                if (liveConfigured && _liveAccount == null) const Text('DeepSeek 尚未取得余额。'),
                 const SizedBox(height: 12),
                 Text('账户概览', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),
-                const Text('三类账户共用一份版本化快照。金额与流量均为虚构示例。'),
+                Text(liveConfigured ? 'DeepSeek 经自托管服务查询；订阅和阿里云仍为虚构示例。' : '三类账户共用一份版本化快照。金额与流量均为虚构示例。'),
                 if (_widgetAccountId != null) ...[
                   const SizedBox(height: 10),
                   const Text('已从桌面组件打开对应账户', style: TextStyle(color: Color(0xFF8FD8BA))),

@@ -21,3 +21,9 @@ Android runner 中加入了一个 AppWidget。安装新的调试 APK 后先打�
 在 Android 桌面长按空白处，进入“小组件”，找到 Quota Hub 并添加。安装、桌面显示、点击跳转仍需在真实设备上验收；构建成功本身不代表这些行为已验证。这个组件没有后台网络刷新，也没有账户选择设置。
 
 `assets/cases.json` 是 `packages/contracts/fixtures/cases.json` 的镜像。更新协议样例后运行仓库根目录的 `node scripts/sync-client-fixtures.mjs`，提交更新后的资产；CI 会检查两份文件一致。
+
+## 私人测试：真实 DeepSeek 余额
+
+先按 [服务端说明](../server/README.md) 配置自托管服务和 HTTPS。编译自己的测试版本时设置 `QUOTA_HUB_URL`（不带末尾斜杠）与服务端单独生成的 `QUOTA_HUB_READ_TOKEN`，例如 `flutter run -d android --dart-define=QUOTA_HUB_URL=https://你的服务域名 --dart-define=QUOTA_HUB_READ_TOKEN=你的只读令牌`。应用启动和点击刷新时获取余额，并推送到 Android 桌面组件；另外两项仍为演示数据。查询失败会显示错误，不用演示余额冒充真实金额。
+
+编译参数会保存在安装包中，可以被提取。此方式仅供你的个人测试，切勿公开发布含有私人只读令牌的 APK。切勿传入 DeepSeek API Key。当前公开的演示构建没有连接服务，也不包含任何令牌。
