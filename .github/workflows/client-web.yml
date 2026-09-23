@@ -20,5 +20,6 @@ jobs:
           flutter config --enable-web
           flutter create --platforms=web .
           flutter pub get
-          flutter analyze lib
+          flutter analyze lib test
+          flutter test
           flutter build web

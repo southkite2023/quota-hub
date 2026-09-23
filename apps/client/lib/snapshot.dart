@@ -42,7 +42,7 @@ class Metric {
       throw const FormatException('Unknown error code');
     }
     if (kind == 'money' && (!RegExp(r'^[A-Z]{3}$').hasMatch(unit) ||
-        value != null && !RegExp(r'^(0|[1-9][0-9]*)(\.[0-9]+)?$').hasMatch(value)) ||
+        value != null && !RegExp(r'^-?(0|[1-9][0-9]*)(\.[0-9]+)?$').hasMatch(value)) ||
         kind == 'traffic' && (unit != 'byte' || value != null && !RegExp(r'^(0|[1-9][0-9]*)$').hasMatch(value)) ||
         kind == 'expiry' && (unit != 'datetime' || value != null && DateTime.tryParse(value) == null)) {
       throw const FormatException('Invalid metric unit or value');

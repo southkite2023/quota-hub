@@ -1,6 +1,6 @@
 # Flutter 客户端原型
 
-此目录为模拟快照驱动的最小主界面。三张账户卡片与状态切换通过 GitHub Actions 的 Web、Android、Windows、macOS、iOS 模拟器构建；设备安装、实际显示与原生小组件尚未验收。没有真实账号、密钥或网络请求。
+此目录为模拟快照驱动的最小主界面。三张账户卡片与状态切换通过 GitHub Actions 的 Web、Android、Windows、macOS、iOS 模拟器构建；设备安装、实际显示与原生小组件尚未验收。Android 支持在应用中设置自己的 DeepSeek API Key 并直接查询官方余额接口；未配置时不显示虚构的 DeepSeek 余额。其余平台仍保留原有演示/自托管查询路径。
 
 在安装 Flutter SDK 的环境中，从 `apps/client` 运行：
 
@@ -22,8 +22,22 @@ Android runner 中加入了一个 AppWidget。安装新的调试 APK 后先打�
 
 `assets/cases.json` 是 `packages/contracts/fixtures/cases.json` 的镜像。更新协议样例后运行仓库根目录的 `node scripts/sync-client-fixtures.mjs`，提交更新后的资产；CI 会检查两份文件一致。
 
-## 私人测试：真实 DeepSeek 余额
+## 非 Android 平台的旧自托管测试方式
 
 先按 [服务端说明](../server/README.md) 配置自托管服务和 HTTPS。编译自己的测试版本时设置 `QUOTA_HUB_URL`（不带末尾斜杠）与服务端单独生成的 `QUOTA_HUB_READ_TOKEN`，例如 `flutter run -d android --dart-define=QUOTA_HUB_URL=https://你的服务域名 --dart-define=QUOTA_HUB_READ_TOKEN=你的只读令牌`。应用启动和点击刷新时获取余额，并推送到 Android 桌面组件；另外两项仍为演示数据。查询失败会显示错误，不用演示余额冒充真实金额。
 
 编译参数会保存在安装包中，可以被提取。此方式仅供你的个人测试，切勿公开发布含有私人只读令牌的 APK。切勿传入 DeepSeek API Key。当前公开的演示构建没有连接服务，也不包含任何令牌。
+
+
+## Android：在应用中连接 DeepSeek
+
+1. 安装此分支构建的 Android APK，点击首页“连接 DeepSeek”或右上角设置按钮。
+2. 在 DeepSeek 开放平台创建自己的 API Key，在设置页粘贴后点击“验证并保存”。无需自建服务器或修改编译参数。
+3. 验证成功后返回首页，显示每种币种的可用、赠送、充值余额和查询成功时间。刷新按钮重新查询；桌面组件显示优先 CNY 的第一种币种。
+4. 更换 Key 时输入新的 Key；只有验证和本机保存均成功才切换账户。点击“移除本机账户与余额”可删除本机凭据与组件余额。
+
+手机只向固定官方 HTTPS 地址 `https://api.deepseek.com/user/balance` 发送 Key；不跟随重定向、不调用模型、不在日志和快照中保存 Key。Key 由 Android Keystore 的 AES-GCM 密钥加密，密文存入 `noBackupFilesDir`，禁用应用备份及明文网络。用户自己的 Key 在安装后输入，不打包进 APK。卸载/清除应用数据后需重新配置。
+
+首次查询失败显示错误；同一进程已有成功值时显示过期余额。重启后重新查询，不从磁盘恢复应用内余额。组件保存的是余额快照，不含 Key。尚无后台定时刷新或多 DeepSeek 账户选择。此实现适用于用户自行管理的个人 Key，不提供设备被攻破后的凭据保护保证。
+
+测试：`flutter test` 验证官方请求、错误处理、多币种/零/负余额、替换/删除、保存失败和设置页交互。真实 Key 查询、重启后的加密存储读取、桌面组件及卸载行为仍需 Android 实机验收。

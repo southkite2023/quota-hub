@@ -2,6 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+
+import 'deepseek_connection.dart';
+import 'deepseek_settings.dart';
 import 'package:flutter/services.dart';
 
 import 'snapshot.dart';
@@ -43,13 +47,60 @@ class _DashboardState extends State<Dashboard> {
   String? _liveRaw;
   String? _liveError;
   bool _loadingLive = false;
+  final _personal = DeepSeekConnection();
+  bool get _android => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _serverConfigured => !_android && liveConfigured;
+  String? _widgetError;
+  String? _lastWidgetPayload;
+
+  Future<void> _syncPersonalWidget() async {
+    if (!_personal.ready) return;
+    final raw = _personal.raw;
+    final payload = '$raw:$_hideMoney';
+    if (payload == _lastWidgetPayload) return;
+    _lastWidgetPayload = payload;
+    try {
+      await WidgetBridge.showLiveSnapshot(raw, hideMoney: _hideMoney);
+      if (mounted) setState(() => _widgetError = null);
+    } catch (_) {
+      _lastWidgetPayload = null;
+      if (mounted) setState(() => _widgetError = '余额已在应用中更新，桌面组件同步失败，请重试刷新。');
+    }
+  }
+
+  void _personalChanged() {
+    if (!mounted) return;
+    setState(() {});
+    if (!_personal.busy) unawaited(_syncPersonalWidget());
+  }
+
+  Future<void> _initializePersonal() async {
+    await _loadWidgetTarget();
+    if (mounted) await _personal.initialize();
+  }
+
+  void _settings() {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => DeepSeekSettings(connection: _personal)));
+  }
+
+  @override
+  void dispose() {
+    _personal.removeListener(_personalChanged);
+    // In-flight requests may finish after leaving the dashboard.
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetBridge.listen(_openWidgetAccount);
-    unawaited(_loadWidgetTarget());
-    if (liveConfigured) unawaited(_refreshLive());
+    if (_android) {
+      _personal.addListener(_personalChanged);
+      unawaited(_initializePersonal());
+    } else {
+      unawaited(_loadWidgetTarget());
+      if (_serverConfigured) unawaited(_refreshLive());
+    }
   }
 
   Future<void> _refreshLive() async {
@@ -87,7 +138,7 @@ class _DashboardState extends State<Dashboard> {
     final accountId = await WidgetBridge.initialAccount();
     if (!mounted) return;
     if (accountId == null) {
-      if (!liveConfigured) await WidgetBridge.showScenario('overview', hideMoney: _hideMoney);
+      if (!_android && !_serverConfigured) await WidgetBridge.showScenario('overview', hideMoney: _hideMoney);
     } else {
       _openWidgetAccount(accountId);
     }
@@ -105,7 +156,7 @@ class _DashboardState extends State<Dashboard> {
       _selected = scenario;
       _widgetAccountId = id;
     });
-    if (!liveConfigured) unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
+    if (!_android && !_serverConfigured) unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
   }
 
   void _selectScenario(String scenario) {
@@ -113,7 +164,7 @@ class _DashboardState extends State<Dashboard> {
       _selected = scenario;
       _widgetAccountId = null;
     });
-    if (!liveConfigured) unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
+    if (!_android && !_serverConfigured) unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
   }
 
   @override
@@ -124,14 +175,17 @@ class _DashboardState extends State<Dashboard> {
             icon: Icon(_hideMoney ? Icons.visibility_off_outlined : Icons.visibility_outlined),
             onPressed: () {
               setState(() => _hideMoney = !_hideMoney);
-              if (liveConfigured && _liveRaw != null) {
+              if (_android) unawaited(_syncPersonalWidget());
+              if (_serverConfigured && _liveRaw != null) {
                 unawaited(WidgetBridge.showLiveSnapshot(_liveRaw!, hideMoney: _hideMoney));
-              } else if (!liveConfigured) {
+              } else if (!_android && !_serverConfigured) {
                 unawaited(WidgetBridge.showScenario(_selected, hideMoney: _hideMoney));
               }
             },
           ),
-          if (liveConfigured) IconButton(tooltip: '刷新余额', icon: const Icon(Icons.refresh), onPressed: _loadingLive ? null : _refreshLive),
+          if (_android) IconButton(tooltip: 'DeepSeek 设置', icon: const Icon(Icons.settings_outlined), onPressed: _settings),
+          if (_android && _personal.connected) IconButton(tooltip: '刷新余额', icon: const Icon(Icons.refresh), onPressed: _personal.busy ? null : _personal.refresh),
+          if (_serverConfigured) IconButton(tooltip: '刷新余额', icon: const Icon(Icons.refresh), onPressed: _loadingLive ? null : _refreshLive),
         ]),
         body: FutureBuilder<List<DemoCase>>(
           future: _cases,
@@ -148,28 +202,39 @@ class _DashboardState extends State<Dashboard> {
               _selected == 'first_failure' ? cases['first_failure']!.accounts[0] : cases['zero']!.accounts[0],
             ];
             if (_selected == 'stale') accounts[0] = cases['stale']!.accounts[0];
-            if (liveConfigured) {
+            if (_serverConfigured) {
               accounts[0] = _liveAccount ?? const Account(
                 id: 'deepseek_cny', provider: 'deepseek', label: '等待首次查询', lastSuccessAt: null,
                 metrics: [Metric(key: 'available', kind: 'money', state: MetricState.unknown, value: null, unit: 'CNY')],
               );
             }
+            if (_android) {
+              accounts.removeAt(0);
+              accounts.insertAll(0, _personal.accounts);
+            }
             return SafeArea(
               child: ListView(padding: const EdgeInsets.all(20), children: [
-                Text(liveConfigured ? 'DeepSeek 实时查询 · 另外两项为演示数据' : '演示数据 · 未连接真实账户', style: const TextStyle(color: Color(0xFF8FD8BA))),
-                if (liveConfigured && _loadingLive) const LinearProgressIndicator(),
-                if (liveConfigured && _liveError != null) Text(_liveError!, style: const TextStyle(color: Color(0xFFFFC77D))),
-                if (liveConfigured && _liveAccount == null) const Text('DeepSeek 尚未取得余额。'),
+                Text(_android ? (_personal.connected ? 'DeepSeek 官方查询 · 另外两项为演示数据' : '连接 DeepSeek，查看你的余额') : liveConfigured ? 'DeepSeek 实时查询 · 另外两项为演示数据' : '演示数据 · 未连接真实账户', style: const TextStyle(color: Color(0xFF8FD8BA))),
+                if (_android) ...[
+                  const SizedBox(height: 12),
+                  if (!_personal.ready || _personal.busy) const LinearProgressIndicator(),
+                  if (_personal.error != null) Text(_personal.error!, style: const TextStyle(color: Color(0xFFFFC77D))),
+                  if (_widgetError != null) Text(_widgetError!, style: const TextStyle(color: Color(0xFFFFC77D))),
+                  if (!_personal.connected) FilledButton.icon(onPressed: _personal.ready ? _settings : null, icon: const Icon(Icons.link), label: const Text('连接 DeepSeek')),
+                ],
+                if (_serverConfigured && _loadingLive) const LinearProgressIndicator(),
+                if (_serverConfigured && _liveError != null) Text(_liveError!, style: const TextStyle(color: Color(0xFFFFC77D))),
+                if (_serverConfigured && _liveAccount == null) const Text('DeepSeek 尚未取得余额。'),
                 const SizedBox(height: 12),
                 Text('账户概览', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),
-                Text(liveConfigured ? 'DeepSeek 经自托管服务查询；订阅和阿里云仍为虚构示例。' : '三类账户共用一份版本化快照。金额与流量均为虚构示例。'),
+                Text(_android ? (_personal.connected ? 'DeepSeek 余额来自你的账户；订阅和阿里云为演示数据。' : '添加你的 DeepSeek API Key 后即可查询。订阅和阿里云为演示数据。') : liveConfigured ? 'DeepSeek 经自托管服务查询；订阅和阿里云仍为虚构示例。' : '三类账户共用一份版本化快照。金额与流量均为虚构示例。'),
                 if (_widgetAccountId != null) ...[
                   const SizedBox(height: 10),
                   const Text('已从桌面组件打开对应账户', style: TextStyle(color: Color(0xFF8FD8BA))),
                 ],
                 const SizedBox(height: 20),
-                Wrap(spacing: 8, runSpacing: 8, children: [
+                if (!_android) Wrap(spacing: 8, runSpacing: 8, children: [
                   for (final (key, label) in [
                     ('overview', '综合预览'), ('zero', '零余额'), ('unknown', '未知'),
                     ('stale', '过期缓存'), ('first_failure', '首次失败'),
@@ -194,7 +259,7 @@ class _DashboardState extends State<Dashboard> {
                   ]);
                 }),
                 const SizedBox(height: 24),
-                Text('模拟快照：2026-09-22 · 协议 v1', style: Theme.of(context).textTheme.bodySmall),
+                Text(_android ? '打开应用或点击刷新时更新 · 不同币种分别显示' : '模拟快照：2026-09-22 · 协议 v1', style: Theme.of(context).textTheme.bodySmall),
               ]),
             );
           },
@@ -256,7 +321,7 @@ class _MetricLine extends StatelessWidget {
     final label = switch (metric.key) {
       'available' => '可用余额',
       'bonus' => '赠送余额',
-      'cash' => '现金余额',
+      'cash' => '充值余额',
       'remaining' => '剩余流量',
       'expires_at' => '到期时间',
       _ => metric.key,

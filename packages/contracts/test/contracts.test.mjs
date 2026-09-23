@@ -39,3 +39,13 @@ test('secrets and arbitrary payload fields are rejected', () => {
   snapshot.accounts[0].apiKey = 'secret';
   assert.match(validateSnapshot(snapshot).join(' '), /apiKey unexpected/);
 });
+
+// Provider balances may be negative; preserve their exact decimal representation.
+test('negative money is retained without allowing negative traffic', () => {
+  const { name, ...snapshot } = clone('zero');
+  snapshot.accounts[0].metrics[0].value = '-0.001';
+  assert.deepEqual(validateSnapshot(snapshot), []);
+  snapshot.accounts[0].metrics[0].kind = 'traffic';
+  snapshot.accounts[0].metrics[0].unit = 'byte';
+  assert.match(validateSnapshot(snapshot).join(' '), /invalid traffic/);
+});

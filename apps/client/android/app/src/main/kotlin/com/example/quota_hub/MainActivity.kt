@@ -11,6 +11,25 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        val keyStore = DeepSeekKeyStore(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/deepseek")
+            .setMethodCallHandler { call, result ->
+                try {
+                    when (call.method) {
+                        "readKey" -> result.success(keyStore.read())
+                        "saveKey", "removeKey" -> {
+                            if (call.method == "saveKey") keyStore.save(call.arguments as String)
+                            else keyStore.remove()
+                            getSharedPreferences("quota_widget", MODE_PRIVATE).edit().remove("snapshot").commit()
+                            QuotaWidgetProvider.refreshAll(this)
+                            result.success(null)
+                        }
+                        else -> result.notImplemented()
+                    }
+                } catch (_: Exception) {
+                    result.error("KEY_STORAGE_FAILED", "Unable to access device credential storage", null)
+                }
+            }
         widgetChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/widget")
         widgetChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
