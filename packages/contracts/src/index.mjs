@@ -45,7 +45,7 @@ export function validateSnapshot(snapshot) {
       } else if (metric.state === 'unknown' || metric.state === 'error') {
         if (metric.value !== null) issues.push(`${mt}.value must be null`);
       }
-      if (metric.kind === 'money' && (!/^[A-Z]{3}$/.test(metric.unit ?? '') || (typeof metric.value === 'string' && !/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(metric.value)))) issues.push(`${mt} invalid money value/unit`);
+      if (metric.kind === 'money' && (!/^[A-Z]{3}$/.test(metric.unit ?? '') || (typeof metric.value === 'string' && !/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(metric.value)))) issues.push(`${mt} invalid money value/unit`);
       if (metric.kind === 'traffic' && (metric.unit !== 'byte' || (typeof metric.value === 'string' && !/^(?:0|[1-9]\d*)$/.test(metric.value)))) issues.push(`${mt} invalid traffic value/unit`);
       if (metric.kind === 'expiry' && (metric.unit !== 'datetime' || (typeof metric.value === 'string' && !validDate(metric.value)))) issues.push(`${mt} invalid expiry value/unit`);
       if (own(metric, 'errorCode') && !errors.has(metric.errorCode)) issues.push(`${mt}.errorCode invalid`);
