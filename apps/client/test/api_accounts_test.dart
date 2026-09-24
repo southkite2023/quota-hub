@@ -60,6 +60,10 @@ void main() {
     final denied = BalanceApi(clientFactory: () => MockClient((_) async => http.Response('sensitive-server-body', 403)));
     await expectLater(denied.fetch(account('router')), throwsA(isA<DeepSeekFailure>().having((e) => e.message, 'message', contains('Management Key'))));
   });
+  test('custom error envelope cannot masquerade as a successful balance', () async {
+    final api = BalanceApi(clientFactory: () => MockClient((_) async => http.Response('{"success":false,"data":{"balance":100}}', 200)));
+    await expectLater(api.fetch(account('custom', provider: BalanceProvider.custom, endpoint: 'https://balance.example')), throwsA(isA<DeepSeekFailure>()));
+  });
   test('OneAPI validates currency mode without auth, divides usage cents and avoids unlimited fake balance', () async {
     var unlimited = false;
     final api = BalanceApi(clientFactory: () => MockClient((r) async {

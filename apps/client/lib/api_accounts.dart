@@ -125,6 +125,7 @@ class BalanceApi {
       if (response.statusCode == 429) throw const DeepSeekFailure('查询过频，请稍后重试。', 'rate_limited');
       if (response.statusCode != 200) throw const DeepSeekFailure('平台暂时无法查询，请稍后重试。', 'provider_unavailable');
       final data = jsonDecode(response.body);
+      if (data is Map && (data['error'] != null || data['success'] == false)) throw const FormatException();
       final metrics = <Map<String, dynamic>>[];
       void money(String key, String amount, String currency) => metrics.add({
         'key': key, 'kind': 'money', 'state': 'ok', 'value': amount, 'unit': currency,

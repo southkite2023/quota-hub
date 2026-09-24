@@ -11,7 +11,9 @@
         android:id="@+id/quota_widget_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="DeepSeek API"
+        android:singleLine="true"
+        android:ellipsize="end"
+        android:text="API 账户余额"
         android:textColor="#BCEAD9"
         android:textSize="13sp"
         android:textStyle="bold" />
@@ -23,7 +25,7 @@
         android:layout_marginTop="10dp"
         android:singleLine="true"
         android:ellipsize="end"
-        android:text="打开应用加载演示数据"
+        android:text="打开应用添加 API 账户"
         android:textColor="#FFFFFF"
         android:textSize="21sp"
         android:textStyle="bold" />
@@ -35,7 +37,7 @@
         android:layout_marginTop="7dp"
         android:singleLine="true"
         android:ellipsize="end"
-        android:text="模拟快照 · 未连接真实账户"
+        android:text="选择账户后查看余额"
         android:textColor="#9CAEB1"
         android:textSize="11sp" />
 </LinearLayout>
