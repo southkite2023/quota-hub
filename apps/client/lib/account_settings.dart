@@ -50,7 +50,7 @@ class AccountSettings extends StatelessWidget {
       ))),
       const SizedBox(height: 16),
       FilledButton.icon(onPressed: connection.ready && !connection.busy && !connection.storageFailed ? () => _edit(context) : null,
-        icon: const Icon(Icons.add), label: const Text('添加 余额账户')),
+        icon: const Icon(Icons.add), label: const Text('添加余额账户')),
     ])),
   ));
 }
@@ -115,7 +115,7 @@ class _AccountEditorState extends State<AccountEditor> {
     final tencent = choice.provider == BalanceProvider.tencent;
     final oneapi = choice.provider == BalanceProvider.oneapi;
     return PopScope(canPop: !widget.connection.busy, child: Scaffold(
-      appBar: AppBar(title: Text(widget.account == null ? '添加 余额账户' : '编辑 余额账户')),
+      appBar: AppBar(title: Text(widget.account == null ? '添加余额账户' : '编辑余额账户')),
       body: SafeArea(child: ListView(padding: const EdgeInsets.all(24), children: [
         DropdownButtonFormField<String>(initialValue: _choice, isExpanded: true,
           decoration: const InputDecoration(labelText: '服务商', border: OutlineInputBorder()),

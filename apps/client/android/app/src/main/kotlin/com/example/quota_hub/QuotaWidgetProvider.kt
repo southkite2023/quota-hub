@@ -42,12 +42,12 @@ class QuotaWidgetProvider : AppWidgetProvider() {
         }
 
         private fun readCard(source: String?, hideMoney: Boolean): Card {
-            if (source == null) return Card("Quota Hub", "打开应用添加 余额账户", "尚未取得余额", "")
+            if (source == null) return Card("Quota Hub", "打开应用添加余额账户", "尚未取得余额", "")
             return try {
                 val json = JSONObject(source)
                 if (json.getInt("schemaVersion") != 1) throw IllegalArgumentException("protocol")
                 val accounts = json.getJSONArray("accounts")
-                if (accounts.length() == 0) return Card("Quota Hub", "添加 余额账户", "尚未连接账户", "")
+                if (accounts.length() == 0) return Card("Quota Hub", "添加余额账户", "尚未连接账户", "")
                 val account = accounts.getJSONObject(0)
                 val metrics = account.getJSONArray("metrics")
                 val metric = (0 until metrics.length()).map { metrics.getJSONObject(it) }
