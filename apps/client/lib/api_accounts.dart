@@ -8,25 +8,32 @@ import 'package:http/http.dart' as http;
 
 import 'deepseek_connection.dart';
 import 'snapshot.dart';
+import 'aliyun_balance.dart';
+import 'tencent_balance.dart';
 
-enum BalanceProvider { deepseek, openrouter, oneapi, custom }
+enum BalanceProvider { deepseek, openrouter, oneapi, custom, aliyun, tencent }
 
 extension ProviderLabel on BalanceProvider {
+  bool get isCloud => this == BalanceProvider.aliyun || this == BalanceProvider.tencent;
   String get label => switch (this) {
     BalanceProvider.deepseek => 'DeepSeek',
     BalanceProvider.openrouter => 'OpenRouter',
     BalanceProvider.oneapi => 'OneAPI 兼容接口',
     BalanceProvider.custom => '自定义余额接口',
+    BalanceProvider.aliyun => '阿里云',
+    BalanceProvider.tencent => '腾讯云',
   };
 }
 
 /// Configuration stays inside the encrypted vault. Never put this object in a snapshot.
 class ApiAccount {
   const ApiAccount({required this.id, required this.provider, required this.name,
-    required this.key, this.endpoint = '', this.balancePath = 'data.balance', this.currency = 'USD'});
-  final String id, name, key, endpoint, balancePath, currency;
+    required this.key, this.endpoint = '', this.balancePath = 'data.balance', this.currency = 'USD', this.accessKeyId = ''});
+  final String id, name, key, endpoint, balancePath, currency, accessKeyId;
   final BalanceProvider provider;
   Uri get uri => switch (provider) {
+    BalanceProvider.tencent => Uri.https('billing.tencentcloudapi.com', '/'),
+    BalanceProvider.aliyun => Uri.https('business.aliyuncs.com', '/'),
     BalanceProvider.deepseek => Uri.https('api.deepseek.com', '/user/balance'),
     BalanceProvider.openrouter => Uri.https('openrouter.ai', '/api/v1/credits'),
     BalanceProvider.oneapi || BalanceProvider.custom => Uri.parse(endpoint),
@@ -35,8 +42,11 @@ class ApiAccount {
     if (!RegExp(r'^[a-z0-9_]+$').hasMatch(id) || name.trim().isEmpty || name.length > 60) {
       throw const DeepSeekFailure('请填写账户名称（最多 60 字）。', 'provider_unavailable');
     }
+    if (provider.isCloud && !RegExp(r'^[A-Za-z0-9]{1,128}$').hasMatch(accessKeyId)) {
+      throw const DeepSeekFailure('请填写有效的 AccessKey ID / SecretId。', 'unauthorized');
+    }
     if (key.isEmpty || key.length > 4096 || RegExp(r'\s|[^\x21-\x7E]').hasMatch(key)) {
-      throw const DeepSeekFailure('请填写完整 API Key，不要包含空格或换行。', 'unauthorized');
+      throw DeepSeekFailure(provider.isCloud ? '请填写完整的 Secret，不要包含空格或换行。' : '请填写完整 API Key，不要包含空格或换行。', 'unauthorized');
     }
     if (provider == BalanceProvider.custom || provider == BalanceProvider.oneapi) {
       final target = Uri.tryParse(endpoint);
@@ -51,11 +61,12 @@ class ApiAccount {
     }
   }
   Map<String, dynamic> toJson() => {'id': id, 'provider': provider.name, 'name': name,
-    'key': key, 'endpoint': endpoint, 'balancePath': balancePath, 'currency': currency};
+    'key': key, 'accessKeyId': accessKeyId, 'endpoint': endpoint, 'balancePath': balancePath, 'currency': currency};
   factory ApiAccount.fromJson(Map<String, dynamic> json) {
     final account = ApiAccount(id: json['id'] as String,
       provider: BalanceProvider.values.byName(json['provider'] as String),
       name: json['name'] as String, key: json['key'] as String,
+      accessKeyId: json['accessKeyId'] as String? ?? '',
       endpoint: json['endpoint'] as String? ?? '', balancePath: json['balancePath'] as String? ?? 'data.balance',
       currency: json['currency'] as String? ?? 'USD');
     account.validate();
@@ -102,6 +113,11 @@ String decimalDifference(Object? first, Object? second) {
   return _formatDecimal(a * BigInt.from(10).pow(scale - sa) - b * BigInt.from(10).pow(scale - sb), scale);
 }
 
+String decimalHundredth(Object value) {
+  final (number, scale) = _decimal(value);
+  return _formatDecimal(number, scale + 2);
+}
+
 class BalanceApi {
   BalanceApi({http.Client Function()? clientFactory}) : _factory = clientFactory ?? http.Client.new;
   final http.Client Function() _factory;
@@ -112,6 +128,8 @@ class BalanceApi {
     }
     final client = _factory();
     try {
+      if (account.provider == BalanceProvider.tencent) return await fetchTencentBalance(client, account);
+      if (account.provider == BalanceProvider.aliyun) return await fetchAliyunBalance(client, account);
       if (account.provider == BalanceProvider.oneapi) return await _oneApi(client, account);
       final request = http.Request('GET', account.uri)..followRedirects = false
         ..headers.addAll({'Authorization': 'Bearer ${account.key}', 'Accept': 'application/json'});
@@ -227,11 +245,11 @@ class ApiAccounts extends ChangeNotifier {
       'accounts': [for (final entry in ordered) ...((_snapshots[entry.id] ?? _empty(entry))['accounts'] as List)]});
   }
   Map<String, dynamic> _empty(ApiAccount entry) {
-    final currency = entry.provider == BalanceProvider.deepseek ? 'CNY' : entry.provider == BalanceProvider.openrouter ? 'USD' : entry.currency;
+    final currency = (entry.provider == BalanceProvider.deepseek || entry.provider.isCloud) ? 'CNY' : entry.provider == BalanceProvider.openrouter ? 'USD' : entry.currency;
     return {'schemaVersion': 1, 'generatedAt': DateTime.now().toUtc().toIso8601String(), 'accounts': [{
       'id': '${entry.id}_${currency.toLowerCase()}', 'provider': entry.provider.name,
       'label': '${entry.name} · $currency', 'lastSuccessAt': null,
-      'metrics': [{'key': 'available', 'kind': 'money', 'state': 'unknown', 'value': null, 'unit': currency}],
+      'metrics': [{'key': entry.provider == BalanceProvider.aliyun ? 'available_credit' : 'available', 'kind': 'money', 'state': 'unknown', 'value': null, 'unit': currency}],
     }]};
   }
   Future<void> initialize() async {

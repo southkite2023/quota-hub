@@ -13,11 +13,39 @@ class MemoryVault implements AccountsStore {
   Future<void> write(String value) async { data = value; }
 }
 void main() {
+  testWidgets('cloud editor hides saved secret and rejects reuse after ID changes', (tester) async {
+    var requests = 0;
+    final vault = MemoryVault();
+    final manager = ApiAccounts(store: vault, api: BalanceApi(clientFactory: () => MockClient((_) async {
+      requests++;
+      return http.Response('{"Success":true,"Code":"200","Data":{"Currency":"CNY","AvailableAmount":"12.00"}}', 200);
+    })));
+    await manager.initialize();
+    const original = ApiAccount(id: 'cloud', provider: BalanceProvider.aliyun, name: '云账户', key: 'fakeSecret', accessKeyId: 'fakeId');
+    expect(await manager.save(original), true);
+    await tester.pumpWidget(MaterialApp(home: AccountEditor(connection: manager, account: original)));
+    final fields = find.byType(TextField);
+    expect(tester.widget<TextField>(fields.last).controller!.text, '');
+    expect(tester.widget<TextField>(fields.last).obscureText, true);
+    await tester.enterText(fields.at(1), 'changedId');
+    await tester.ensureVisible(find.text('验证并保存'));
+    await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
+    expect(requests, 1);
+    expect(manager.entries.single.accessKeyId, 'fakeId');
+    expect(find.textContaining('请填写完整的 Secret'), findsOneWidget);
+    await tester.enterText(fields.last, 'newSecret');
+    await tester.ensureVisible(find.text('验证并保存'));
+    await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
+    expect(requests, 2);
+    expect(manager.entries.single.accessKeyId, 'changedId');
+    expect(manager.raw, isNot(contains('newSecret')));
+  });
+
   testWidgets('OpenRouter can be selected and saved as an independent account', (tester) async {
     final manager = ApiAccounts(store: MemoryVault(), api: BalanceApi(clientFactory: () => MockClient((_) async => http.Response('{"data":{"total_credits":10,"total_usage":2}}', 200))));
     await manager.initialize();
     await tester.pumpWidget(MaterialApp(home: AccountSettings(connection: manager)));
-    await tester.tap(find.text('添加 API 账户')); await tester.pumpAndSettle();
+    await tester.tap(find.text('添加余额账户')); await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<String>)); await tester.pumpAndSettle();
     await tester.tap(find.text('OpenRouter').last); await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '工作 OpenRouter');
