@@ -83,7 +83,7 @@ class _AccountEditorState extends State<AccountEditor> {
     final canReuse = old != null && old.provider == provider && old.endpoint == endpoint;
     final candidate = ApiAccount(id: old?.id ?? 'account_${DateTime.now().microsecondsSinceEpoch}',
       provider: provider, name: _name.text.trim().isEmpty ? provider.label : _name.text.trim(),
-      key: _key.text.trim().isEmpty && canReuse ? (old?.key ?? '') : _key.text.trim(), endpoint: endpoint,
+      key: _key.text.trim().isEmpty && canReuse ? old.key : _key.text.trim(), endpoint: endpoint,
       balancePath: _path.text.trim(), currency: _currency.text.trim().toUpperCase());
     try { candidate.validate(); } on DeepSeekFailure catch (failure) { setState(() => _error = failure.message); return; }
     if (custom) {
