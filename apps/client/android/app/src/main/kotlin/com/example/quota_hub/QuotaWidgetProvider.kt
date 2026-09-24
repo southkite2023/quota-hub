@@ -42,20 +42,19 @@ class QuotaWidgetProvider : AppWidgetProvider() {
         }
 
         private fun readCard(source: String?, hideMoney: Boolean): Card {
-            if (source == null) return Card("Quota Hub · 演示", "打开应用加载数据", "模拟快照 · 未连接真实账户", "deepseek_demo")
+            if (source == null) return Card("Quota Hub", "打开应用添加 API 账户", "尚未取得余额", "")
             return try {
                 val json = JSONObject(source)
                 if (json.getInt("schemaVersion") != 1) throw IllegalArgumentException("protocol")
                 val accounts = json.getJSONArray("accounts")
-                val account = (0 until accounts.length()).map { accounts.getJSONObject(it) }
-                    .firstOrNull { it.optString("provider") == "deepseek" }
-                    ?: throw IllegalArgumentException("missing DeepSeek account")
+                if (accounts.length() == 0) return Card("Quota Hub", "添加 API 账户", "尚未连接账户", "")
+                val account = accounts.getJSONObject(0)
                 val metrics = account.getJSONArray("metrics")
                 val metric = (0 until metrics.length()).map { metrics.getJSONObject(it) }
                     .firstOrNull { it.optString("key") == "available" }
                     ?: throw IllegalArgumentException("missing balance")
                 val state = metric.getString("state")
-                val sourceLabel = if (account.getString("id").endsWith("_demo") || account.getString("id") == "deepseek_cached") "演示数据" else "DeepSeek"
+                val sourceLabel = if (account.getString("id").endsWith("_demo") || account.getString("id") == "deepseek_cached") "演示数据" else account.optString("label", "API 账户")
                 val value = when (state) {
                     "ok", "stale" -> if (hideMoney && metric.getString("kind") == "money") {
                         "•••• ${metric.getString("unit")}"
@@ -72,9 +71,9 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                     "unknown" -> "$sourceLabel · 未知"
                     else -> "$sourceLabel · 查询失败"
                 }
-                Card("DeepSeek API · 可用余额", value, status, account.getString("id"))
+                Card(account.optString("label", "API 余额"), value, status, account.getString("id"))
             } catch (_: Exception) {
-                Card("Quota Hub · 演示", "数据不可用", "打开应用重新加载", "deepseek_demo")
+                Card("Quota Hub", "数据不可用", "打开应用重新加载", "")
             }
         }
     }

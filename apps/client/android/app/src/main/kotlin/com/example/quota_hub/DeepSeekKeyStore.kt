@@ -14,9 +14,9 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /** Only ciphertext is stored; no-backup storage prevents restoring it without its device key. */
-class DeepSeekKeyStore(context: Context) {
-    private val file = AtomicFile(File(context.noBackupFilesDir, "deepseek-key.json"))
-    private val alias = "quota_hub_deepseek_v1"
+class DeepSeekKeyStore(context: Context, slot: String = "deepseek") {
+    private val file = AtomicFile(File(context.noBackupFilesDir, "$slot-key.json"))
+    private val alias = "quota_hub_${slot}_v1"
 
     private fun encryptionKey(create: Boolean): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -40,7 +40,7 @@ class DeepSeekKeyStore(context: Context) {
     }
 
     fun save(value: String) {
-        require(value.isNotBlank() && value.length <= 4096 && value.all { it.code in 33..126 })
+        require(value.isNotBlank() && value.toByteArray(Charsets.UTF_8).size <= 262144)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, encryptionKey(true))
         val json = JSONObject()

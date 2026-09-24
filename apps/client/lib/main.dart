@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
-import 'deepseek_connection.dart';
-import 'deepseek_settings.dart';
+import 'api_accounts.dart';
+import 'account_settings.dart';
 import 'package:flutter/services.dart';
 
 import 'snapshot.dart';
@@ -47,14 +47,14 @@ class _DashboardState extends State<Dashboard> {
   String? _liveRaw;
   String? _liveError;
   bool _loadingLive = false;
-  final _personal = DeepSeekConnection();
+  final _personal = ApiAccounts();
   bool get _android => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
   bool get _serverConfigured => !_android && liveConfigured;
   String? _widgetError;
   String? _lastWidgetPayload;
 
   Future<void> _syncPersonalWidget() async {
-    if (!_personal.ready) return;
+    if (!_personal.ready || _personal.storageFailed) return;
     final raw = _personal.raw;
     final payload = '$raw:$_hideMoney';
     if (payload == _lastWidgetPayload) return;
@@ -80,7 +80,7 @@ class _DashboardState extends State<Dashboard> {
   }
 
   void _settings() {
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => DeepSeekSettings(connection: _personal)));
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AccountSettings(connection: _personal)));
   }
 
   @override
@@ -183,7 +183,7 @@ class _DashboardState extends State<Dashboard> {
               }
             },
           ),
-          if (_android) IconButton(tooltip: 'DeepSeek 设置', icon: const Icon(Icons.settings_outlined), onPressed: _settings),
+          if (_android) IconButton(tooltip: 'API 账户设置', icon: const Icon(Icons.settings_outlined), onPressed: _settings),
           if (_android && _personal.connected) IconButton(tooltip: '刷新余额', icon: const Icon(Icons.refresh), onPressed: _personal.busy ? null : _personal.refresh),
           if (_serverConfigured) IconButton(tooltip: '刷新余额', icon: const Icon(Icons.refresh), onPressed: _loadingLive ? null : _refreshLive),
         ]),
@@ -209,18 +209,19 @@ class _DashboardState extends State<Dashboard> {
               );
             }
             if (_android) {
-              accounts.removeAt(0);
-              accounts.insertAll(0, _personal.accounts);
+              accounts.clear();
+              accounts.addAll(_personal.accounts);
             }
             return SafeArea(
               child: ListView(padding: const EdgeInsets.all(20), children: [
-                Text(_android ? (_personal.connected ? 'DeepSeek 官方查询 · 另外两项为演示数据' : '连接 DeepSeek，查看你的余额') : liveConfigured ? 'DeepSeek 实时查询 · 另外两项为演示数据' : '演示数据 · 未连接真实账户', style: const TextStyle(color: Color(0xFF8FD8BA))),
+                Text(_android ? (_personal.connected ? 'API 账户余额 · 各平台分别查询' : '添加 API 账户，集中查看余额') : liveConfigured ? 'DeepSeek 实时查询 · 另外两项为演示数据' : '演示数据 · 未连接真实账户', style: const TextStyle(color: Color(0xFF8FD8BA))),
                 if (_android) ...[
                   const SizedBox(height: 12),
                   if (!_personal.ready || _personal.busy) const LinearProgressIndicator(),
                   if (_personal.error != null) Text(_personal.error!, style: const TextStyle(color: Color(0xFFFFC77D))),
+                  for (final entry in _personal.entries.where((e) => _personal.errors.containsKey(e.id))) Text('${entry.name}：${_personal.errors[entry.id]}', style: const TextStyle(color: Color(0xFFFFC77D))),
                   if (_widgetError != null) Text(_widgetError!, style: const TextStyle(color: Color(0xFFFFC77D))),
-                  if (!_personal.connected) FilledButton.icon(onPressed: _personal.ready ? _settings : null, icon: const Icon(Icons.link), label: const Text('连接 DeepSeek')),
+                  FilledButton.icon(onPressed: _personal.ready ? _settings : null, icon: const Icon(Icons.link), label: const Text('管理 / 添加 API 账户')),
                 ],
                 if (_serverConfigured && _loadingLive) const LinearProgressIndicator(),
                 if (_serverConfigured && _liveError != null) Text(_liveError!, style: const TextStyle(color: Color(0xFFFFC77D))),
@@ -228,7 +229,7 @@ class _DashboardState extends State<Dashboard> {
                 const SizedBox(height: 12),
                 Text('账户概览', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 8),
-                Text(_android ? (_personal.connected ? 'DeepSeek 余额来自你的账户；订阅和阿里云为演示数据。' : '添加你的 DeepSeek API Key 后即可查询。订阅和阿里云为演示数据。') : liveConfigured ? 'DeepSeek 经自托管服务查询；订阅和阿里云仍为虚构示例。' : '三类账户共用一份版本化快照。金额与流量均为虚构示例。'),
+                Text(_android ? (_personal.connected ? '每个账户单独更新，不跨币种相加。' : '选择服务商，配置账户后验证并查看余额。') : liveConfigured ? 'DeepSeek 经自托管服务查询；订阅和阿里云仍为虚构示例。' : '三类账户共用一份版本化快照。金额与流量均为虚构示例。'),
                 if (_widgetAccountId != null) ...[
                   const SizedBox(height: 10),
                   const Text('已从桌面组件打开对应账户', style: TextStyle(color: Color(0xFF8FD8BA))),
@@ -277,6 +278,9 @@ class _AccountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = switch (account.provider) {
       'deepseek' => 'DeepSeek API',
+      'openrouter' => 'OpenRouter',
+      'oneapi' => 'OneAPI 兼容接口',
+      'custom' => 'API 余额',
       'subscription' => '代理订阅',
       'aliyun' => '阿里云',
       _ => account.provider,
@@ -322,6 +326,8 @@ class _MetricLine extends StatelessWidget {
       'available' => '可用余额',
       'bonus' => '赠送余额',
       'cash' => '充值余额',
+      'purchased' => '累计购买额度',
+      'spent' => '已用额度',
       'remaining' => '剩余流量',
       'expires_at' => '到期时间',
       _ => metric.key,
