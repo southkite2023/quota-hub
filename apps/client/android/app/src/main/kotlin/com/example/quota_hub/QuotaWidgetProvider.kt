@@ -42,19 +42,20 @@ class QuotaWidgetProvider : AppWidgetProvider() {
         }
 
         private fun readCard(source: String?, hideMoney: Boolean): Card {
-            if (source == null) return Card("Quota Hub", "打开应用添加 API 账户", "尚未取得余额", "")
+            if (source == null) return Card("Quota Hub", "打开应用添加余额账户", "尚未取得余额", "")
             return try {
                 val json = JSONObject(source)
                 if (json.getInt("schemaVersion") != 1) throw IllegalArgumentException("protocol")
                 val accounts = json.getJSONArray("accounts")
-                if (accounts.length() == 0) return Card("Quota Hub", "添加 API 账户", "尚未连接账户", "")
+                if (accounts.length() == 0) return Card("Quota Hub", "添加余额账户", "尚未连接账户", "")
                 val account = accounts.getJSONObject(0)
                 val metrics = account.getJSONArray("metrics")
                 val metric = (0 until metrics.length()).map { metrics.getJSONObject(it) }
-                    .firstOrNull { it.optString("key") == "available" }
+                    .firstOrNull { it.optString("key") in setOf("available", "available_credit") }
                     ?: throw IllegalArgumentException("missing balance")
                 val state = metric.getString("state")
-                val sourceLabel = if (account.getString("id").endsWith("_demo") || account.getString("id") == "deepseek_cached") "演示数据" else account.optString("label", "API 账户")
+                val amountLabel = if (metric.optString("key") == "available_credit") "可用额度" else "可用余额"
+                val sourceLabel = if (account.getString("id").endsWith("_demo") || account.getString("id") == "deepseek_cached") "演示数据" else account.optString("label", "余额账户")
                 val value = when (state) {
                     "ok", "stale" -> if (hideMoney && metric.getString("kind") == "money") {
                         "•••• ${metric.getString("unit")}"
@@ -66,7 +67,7 @@ class QuotaWidgetProvider : AppWidgetProvider() {
                     else -> throw IllegalArgumentException("unknown state")
                 }
                 val status = when (state) {
-                    "ok" -> "$sourceLabel · 正常"
+                    "ok" -> "$sourceLabel · $amountLabel"
                     "stale" -> "$sourceLabel · 缓存已过期"
                     "unknown" -> "$sourceLabel · 未知"
                     else -> "$sourceLabel · 查询失败"

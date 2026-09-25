@@ -183,7 +183,7 @@ class _DashboardState extends State<Dashboard> {
               }
             },
           ),
-          if (_android) IconButton(tooltip: 'API 账户设置', icon: const Icon(Icons.settings_outlined), onPressed: _settings),
+          if (_android) IconButton(tooltip: '余额账户设置', icon: const Icon(Icons.settings_outlined), onPressed: _settings),
           if (_android && _personal.connected) IconButton(tooltip: '刷新余额', icon: const Icon(Icons.refresh), onPressed: _personal.busy ? null : _personal.refresh),
           if (_serverConfigured) IconButton(tooltip: '刷新余额', icon: const Icon(Icons.refresh), onPressed: _loadingLive ? null : _refreshLive),
         ]),
@@ -214,14 +214,14 @@ class _DashboardState extends State<Dashboard> {
             }
             return SafeArea(
               child: ListView(padding: const EdgeInsets.all(20), children: [
-                Text(_android ? (_personal.connected ? 'API 账户余额 · 各平台分别查询' : '添加 API 账户，集中查看余额') : liveConfigured ? 'DeepSeek 实时查询 · 另外两项为演示数据' : '演示数据 · 未连接真实账户', style: const TextStyle(color: Color(0xFF8FD8BA))),
+                Text(_android ? (_personal.connected ? '账户余额 · 各平台分别查询' : '添加余额账户，集中查看余额') : liveConfigured ? 'DeepSeek 实时查询 · 另外两项为演示数据' : '演示数据 · 未连接真实账户', style: const TextStyle(color: Color(0xFF8FD8BA))),
                 if (_android) ...[
                   const SizedBox(height: 12),
                   if (!_personal.ready || _personal.busy) const LinearProgressIndicator(),
                   if (_personal.error != null) Text(_personal.error!, style: const TextStyle(color: Color(0xFFFFC77D))),
                   for (final entry in _personal.entries.where((e) => _personal.errors.containsKey(e.id))) Text('${entry.name}：${_personal.errors[entry.id]}', style: const TextStyle(color: Color(0xFFFFC77D))),
                   if (_widgetError != null) Text(_widgetError!, style: const TextStyle(color: Color(0xFFFFC77D))),
-                  FilledButton.icon(onPressed: _personal.ready ? _settings : null, icon: const Icon(Icons.link), label: const Text('管理 / 添加 API 账户')),
+                  FilledButton.icon(onPressed: _personal.ready ? _settings : null, icon: const Icon(Icons.link), label: const Text('管理 / 添加余额账户')),
                 ],
                 if (_serverConfigured && _loadingLive) const LinearProgressIndicator(),
                 if (_serverConfigured && _liveError != null) Text(_liveError!, style: const TextStyle(color: Color(0xFFFFC77D))),
@@ -283,6 +283,7 @@ class _AccountCard extends StatelessWidget {
       'custom' => 'API 余额',
       'subscription' => '代理订阅',
       'aliyun' => '阿里云',
+      'tencent' => '腾讯云',
       _ => account.provider,
     };
     return Card(
@@ -324,6 +325,8 @@ class _MetricLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = switch (metric.key) {
       'available' => '可用余额',
+      'available_credit' => '可用额度',
+      'cash_balance' => '现金余额',
       'bonus' => '赠送余额',
       'cash' => '充值余额',
       'purchased' => '累计购买额度',
