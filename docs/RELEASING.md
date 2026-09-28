@@ -1,9 +1,9 @@
 # Android 安装包分发
 
-用户指定 GitHub Releases 为安装包下载入口。当前版本：[0.3.0 测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.3.0)。
+用户指定 GitHub Releases 为安装包下载入口。当前版本：[0.4.0 测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.4.0)。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
-- [0.3.0 APK 直接下载](https://github.com/southkite2023/quota-hub/releases/download/v0.3.0/quota-hub-0.3.0-android.apk)
+- [0.4.0 APK 直接下载](https://github.com/southkite2023/quota-hub/releases/download/v0.4.0/quota-hub-0.4.0-android.apk)
 
 ## 每次发布
 
@@ -16,6 +16,6 @@
 
 ## 当前包
 
-0.3.0+4 使用已经通过验证的 Debug APK，源码为 `3f40723ef07060a363a7b34535f899239522b440`，来自原生构建 `36052195648`。未重新打包或更换签名。真实账户及 Android 真机验收仍待完成。
+0.4.0+5 使用已经通过验证的 Debug APK，源码为 `b5b52f83b2cfef04c99a72e5b132fde475f572a9`，来自原生构建 `36397284226`。发布时沿用该构建产物，未重新打包。与 0.3.0 的调试签名不同，不能覆盖安装；用户须自行保留配置和密钥后卸载、重装，卸载会删除本机数据。后续需建立持久的安全签名配置，避免测试包每次签名变化。真实账户、Android 真机及长时间锁屏验收仍待完成。
 
 本次发布使用的一次性工作流已在成功后移除，避免以后更新 PR 时意外重复发布。以后按上述流程发布对应版本。
