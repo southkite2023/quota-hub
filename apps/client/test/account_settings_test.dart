@@ -45,6 +45,7 @@ void main() {
     final manager = ApiAccounts(store: MemoryVault(), api: BalanceApi(clientFactory: () => MockClient((_) async => http.Response('{"data":{"total_credits":10,"total_usage":2}}', 200))));
     await manager.initialize();
     await tester.pumpWidget(MaterialApp(home: AccountSettings(connection: manager)));
+    await tester.ensureVisible(find.text('添加余额账户'));
     await tester.tap(find.text('添加余额账户')); await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<String>)); await tester.pumpAndSettle();
     await tester.tap(find.text('OpenRouter').last); await tester.pumpAndSettle();

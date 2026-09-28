@@ -8,10 +8,41 @@ import org.json.JSONObject
 import org.json.JSONArray
 
 class MainActivity : FlutterActivity() {
+    private var notificationResult: MethodChannel.Result? = null
     private var widgetChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/refresh").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "acquire" -> result.success(RefreshRuntime.acquire("ui"))
+                "release" -> {
+                    RefreshRuntime.release("ui")
+                    getSharedPreferences("refresh_status", MODE_PRIVATE).edit().putLong("lastAttempt", System.currentTimeMillis()).apply()
+                    result.success(null)
+                }
+                "requestNotifications" -> {
+                    if (RefreshRuntime.notificationAllowed(this)) result.success(true)
+                    else if (notificationResult != null) result.success(false)
+                    else { notificationResult = result; requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 430) }
+                }
+                "start" -> {
+                    getSharedPreferences("refresh_status", MODE_PRIVATE).edit().putBoolean("stopped", false).apply()
+                    RefreshRuntime.start(this); result.success(null)
+                }
+                "stop" -> {
+                    stopService(Intent(this, BalanceRefreshService::class.java))
+                    getSharedPreferences("refresh_status", MODE_PRIVATE).edit().putString("message", "后台刷新已关闭").apply()
+                    result.success(null)
+                }
+                "status" -> {
+                    val message = getSharedPreferences("refresh_status", MODE_PRIVATE).getString("message", "后台刷新未开启")
+                    result.success(if (!RefreshRuntime.allowed(this)) "后台刷新未开启（需启用自动刷新并添加账户）"
+                        else if (!RefreshRuntime.running && message == "后台刷新已开启") "后台服务已停止，请重新开启" else message)
+                }
+                else -> result.notImplemented()
+            }
+        }
         val keyStore = DeepSeekKeyStore(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/deepseek")
             .setMethodCallHandler { call, result ->
@@ -54,6 +85,7 @@ class MainActivity : FlutterActivity() {
                             val json = JSONObject(value)
                             require(json.getInt("version") == 1 && json.getJSONArray("accounts").length() <= 20)
                             accountsStore.save(value)
+                            if (RefreshRuntime.visible) RefreshRuntime.start(this)
                             // New vault (including an empty list) takes precedence over the legacy file.
                             runCatching { keyStore.remove() }
                             runCatching {
@@ -84,6 +116,7 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                 }
+                "readSnapshot" -> result.success(getSharedPreferences("quota_widget", MODE_PRIVATE).getString("snapshot", null))
                 "getWidgetAccount" -> result.success(intent?.getStringExtra("accountId"))
                 "getHideMoney" -> result.success(
                     getSharedPreferences("quota_widget", MODE_PRIVATE).getBoolean("hideMoney", false)
@@ -93,6 +126,23 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume(); RefreshRuntime.visible = true; RefreshRuntime.start(this)
+    }
+    override fun onPause() {
+        RefreshRuntime.visible = false; super.onPause()
+    }
+    override fun onDestroy() {
+        notificationResult?.success(false); notificationResult = null
+        RefreshRuntime.release("ui")
+        super.onDestroy()
+    }
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 430) {
+            notificationResult?.success(RefreshRuntime.notificationAllowed(this)); notificationResult = null
+        }
+    }
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)

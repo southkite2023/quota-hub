@@ -77,7 +77,7 @@ void main() {
     expect(await connection.disconnect(), true);
     expect(store.value, null);
     expect(connection.connected, false);
-    expect(connection.raw, isNot(contains('23.45')));
+    expect(jsonDecode(connection.raw)['accounts'][0]['metrics'][0]['value'], null);
     expect(connection.accounts.first.metrics.first.state, MetricState.unknown);
   });
 
