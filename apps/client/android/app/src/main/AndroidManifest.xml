@@ -26,6 +26,7 @@
             </intent-filter>
         </activity>
         <service android:name=".BalanceRefreshService" android:exported="false" android:foregroundServiceType="dataSync" android:stopWithTask="false" />
+        <service android:name=".QuotaWidgetService" android:exported="false" android:permission="android.permission.BIND_REMOTEVIEWS" />
         <receiver android:name=".QuotaWidgetProvider" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

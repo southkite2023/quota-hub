@@ -113,8 +113,13 @@ class BalanceRefreshService : Service() {
             channel!!.invokeMethod("refresh", mapOf("configuration" to revision, "snapshot" to cache), object : MethodChannel.Result {
                 override fun success(value: Any?) {
                     // Discard data from removed accounts or changed credentials/settings.
-                    try { if (revision == DeepSeekKeyStore(this@BalanceRefreshService, "accounts").read() && value is String && value.length <= 65536) {
-                        getSharedPreferences("quota_widget", MODE_PRIVATE).edit().putString("snapshot", value).apply()
+                    try { if (revision == DeepSeekKeyStore(this@BalanceRefreshService, "accounts").read() && value is String && value.length <= 150000) {
+                        val data = JSONObject(value)
+                        val snapshot = data.getString("snapshot")
+                        val widgetSnapshot = data.getString("widgetSnapshot")
+                        require(snapshot.length <= 65536 && widgetSnapshot.length <= 65536)
+                        getSharedPreferences("quota_widget", MODE_PRIVATE).edit().putString("snapshot", snapshot)
+                            .putString("widget_snapshot", widgetSnapshot).apply()
                         QuotaWidgetProvider.refreshAll(this@BalanceRefreshService)
                     }
                     } catch (_: Exception) { /* Never expose credential or response contents. */ }

@@ -231,7 +231,9 @@ class ApiAccounts extends ChangeNotifier {
   List<ApiAccount> _entries = [];
   final Map<String, Map<String, dynamic>> _snapshots = {};
   final Map<String, String> errors = {};
-  String? widgetAccountId;
+  List<String> _widgetAccountIds = [];
+  List<String> get widgetAccountIds => List.unmodifiable(_widgetAccountIds);
+  String? get widgetAccountId => _widgetAccountIds.isEmpty ? null : _widgetAccountIds.first;
   bool ready = false, busy = false, storageFailed = false;
   int refreshMinutes = 5;
   bool backgroundRefresh = false;
@@ -312,6 +314,9 @@ class ApiAccounts extends ChangeNotifier {
     return jsonEncode({'schemaVersion': 1, 'generatedAt': DateTime.now().toUtc().toIso8601String(),
       'accounts': [for (final entry in ordered) ...((_snapshots[entry.id] ?? _empty(entry))['accounts'] as List)]});
   }
+  String get widgetRaw => jsonEncode({'schemaVersion': 1, 'generatedAt': _now().toUtc().toIso8601String(),
+    'accounts': [for (final entry in _entries.where((e) => _widgetAccountIds.contains(e.id)))
+      ...((_snapshots[entry.id] ?? _empty(entry))['accounts'] as List)]});
   Map<String, dynamic> _empty(ApiAccount entry) {
     final currency = (entry.provider == BalanceProvider.deepseek || entry.provider.isCloud) ? 'CNY' : entry.provider == BalanceProvider.openrouter ? 'USD' : entry.currency;
     return {'schemaVersion': 1, 'generatedAt': DateTime.now().toUtc().toIso8601String(), 'accounts': [{
@@ -329,7 +334,11 @@ class ApiAccounts extends ChangeNotifier {
         final entries = (data['accounts'] as List).map((e) => ApiAccount.fromJson(Map<String, dynamic>.from(e as Map))).toList();
         if (entries.length > 20 || entries.map((e) => e.id).toSet().length != entries.length) throw const FormatException();
         _entries = entries;
-        widgetAccountId = data['widgetAccountId'] as String?;
+        final selected = data['widgetAccountIds'];
+        if (selected != null && (selected is! List || selected.any((id) => id is! String))) throw const FormatException();
+        final oldSelected = data['widgetAccountId'] as String?;
+        _widgetAccountIds = (selected == null ? (oldSelected == null ? entries.map((e) => e.id).toList() : [oldSelected]) : List<String>.from(selected as List))
+          .where((id) => entries.any((e) => e.id == id)).toSet().toList();
         final interval = data['refreshMinutes'] ?? 5;
         if (interval is! int || interval < 0 || interval > 1440) throw const FormatException();
         refreshMinutes = interval;
@@ -351,8 +360,8 @@ class ApiAccounts extends ChangeNotifier {
       }
     } catch (_) { /* Ignore invalid snapshots, never the encrypted account configuration. */ }
   }
-  String _serialize(List<ApiAccount> entries, String? selected, {int? minutes, bool? background}) => jsonEncode({
-    'version': 1, 'backgroundRefresh': background ?? backgroundRefresh, 'refreshMinutes': minutes ?? refreshMinutes, 'widgetAccountId': selected, 'accounts': entries.map((e) => e.toJson()).toList(),
+  String _serialize(List<ApiAccount> entries, String? selected, {int? minutes, bool? background, List<String>? selectedIds}) => jsonEncode({
+    'version': 1, 'backgroundRefresh': background ?? backgroundRefresh, 'refreshMinutes': minutes ?? refreshMinutes, 'widgetAccountId': selected, 'widgetAccountIds': selectedIds ?? _widgetAccountIds, 'accounts': entries.map((e) => e.toJson()).toList(),
   });
   Future<bool> save(ApiAccount candidate) async {
     if (busy || !ready || storageFailed || _disposed) return false;
@@ -364,9 +373,9 @@ class ApiAccounts extends ChangeNotifier {
       if (index < 0 && next.length >= 20) throw const DeepSeekFailure('最多保存 20 个账户。', 'provider_unavailable');
       final snapshot = await _api.fetch(candidate);
       if (index < 0) { next.add(candidate); } else { next[index] = candidate; }
-      final selected = widgetAccountId ?? candidate.id;
-      await _store.write(_serialize(next, selected));
-      _entries = next; widgetAccountId = selected; _snapshots[candidate.id] = snapshot; errors.remove(candidate.id);
+      final selected = index < 0 ? [..._widgetAccountIds, candidate.id] : [..._widgetAccountIds];
+      await _store.write(_serialize(next, selected.isEmpty ? null : selected.first, selectedIds: selected));
+      _entries = next; _widgetAccountIds = selected; _snapshots[candidate.id] = snapshot; errors.remove(candidate.id);
       return true;
     } on DeepSeekFailure catch (failure) { error = failure.message; return false; }
     catch (_) { error = '本机保存失败，原有账户未更改。'; return false; }
@@ -406,17 +415,37 @@ class ApiAccounts extends ChangeNotifier {
     busy = true; error = null; _emit();
     try {
       final next = _entries.where((e) => e.id != id).toList();
-      final selected = widgetAccountId == id ? (next.isEmpty ? null : next.first.id) : widgetAccountId;
-      await _store.write(_serialize(next, selected));
-      _entries = next; widgetAccountId = selected; _snapshots.remove(id); errors.remove(id);
+      final selected = _widgetAccountIds.where((item) => item != id).toList();
+      await _store.write(_serialize(next, selected.isEmpty ? null : selected.first, selectedIds: selected));
+      _entries = next; _widgetAccountIds = selected; _snapshots.remove(id); errors.remove(id);
       return true;
     } catch (_) { error = '移除失败，请重试。'; return false; }
+    finally { busy = false; _scheduleRefresh(); _emit(); }
+  }
+  Future<void> setWidgetSelected(String id, bool selected) async {
+    if (_disposed || busy || !ready || storageFailed || !_entries.any((e) => e.id == id)) return;
+    busy = true; error = null; _emit();
+    try {
+      final next = [..._widgetAccountIds.where((item) => item != id), if (selected) id];
+      await _store.write(_serialize(_entries, next.isEmpty ? null : next.first, selectedIds: next));
+      _widgetAccountIds = next;
+    } catch (_) { error = '组件勾选保存失败，原选择未更改。'; }
+    finally { busy = false; _scheduleRefresh(); _emit(); }
+  }
+  Future<void> selectAllWidgets(bool selected) async {
+    if (_disposed || busy || !ready || storageFailed) return;
+    busy = true; error = null; _emit();
+    try {
+      final next = selected ? _entries.map((e) => e.id).toList() : <String>[];
+      await _store.write(_serialize(_entries, next.isEmpty ? null : next.first, selectedIds: next));
+      _widgetAccountIds = next;
+    } catch (_) { error = '组件勾选保存失败，原选择未更改。'; }
     finally { busy = false; _scheduleRefresh(); _emit(); }
   }
   Future<void> selectWidget(String id) async {
     if (_disposed || busy || storageFailed || !_entries.any((e) => e.id == id)) return;
     busy = true; error = null; _emit();
-    try { await _store.write(_serialize(_entries, id)); widgetAccountId = id; }
+    try { await _store.write(_serialize(_entries, id, selectedIds: [id])); _widgetAccountIds = [id]; }
     catch (_) { error = '组件账户设置保存失败，请重试。'; }
     finally { busy = false; _scheduleRefresh(); _emit(); }
   }

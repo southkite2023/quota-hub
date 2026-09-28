@@ -64,8 +64,8 @@ class WidgetBridge {
     }
   }
 
-  static Future<void> showLiveSnapshot(String snapshot, {required bool hideMoney}) async {
+  static Future<void> showLiveSnapshot(String snapshot, {required bool hideMoney, String? widgetSnapshot}) async {
     if (!_android) return;
-    await _channel.invokeMethod<void>('saveSnapshot', {'snapshot': snapshot, 'hideMoney': hideMoney});
+    await _channel.invokeMethod<void>('saveSnapshot', {'snapshot': snapshot, 'widgetSnapshot': widgetSnapshot ?? snapshot, 'hideMoney': hideMoney});
   }
 }

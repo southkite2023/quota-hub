@@ -30,6 +30,27 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Sign APK with persistent identity when configured
+        id: sign
+        env:
+          ANDROID_SIGNING_STORE_BASE64: ${{ secrets.ANDROID_SIGNING_STORE_BASE64 }}
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_SIGNING_STORE_BASE64" ] || [ -z "$ANDROID_SIGNING_PASSWORD" ]; then
+            echo "Fixed signing not configured; CI debug artifact is not publishable."
+            exit 0
+          fi
+          bash scripts/sign-android-apk.sh apps/client/build/app/outputs/flutter-apk/app-debug.apk quota-hub-android-signed.apk
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Save fixed-signature Android APK
+        if: steps.sign.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: quota-hub-android-signed
+          path: quota-hub-android-signed.apk
+          if-no-files-found: error
+          retention-days: 14
+
   windows:
     runs-on: windows-latest
     timeout-minutes: 30

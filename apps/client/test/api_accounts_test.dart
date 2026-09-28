@@ -119,7 +119,8 @@ void main() {
     expect(manager.entries.length, 2);
     vault.fail = false;
     expect(await manager.remove('second'), true);
-    expect(manager.widgetAccountId, 'first');
+    expect(manager.widgetAccountId, null);
+    expect(jsonDecode(manager.widgetRaw)['accounts'], isEmpty);
     expect(await manager.remove('first'), true);
     expect(jsonDecode(manager.raw)['accounts'], isEmpty);
     expect(jsonDecode(vault.data!)['accounts'], isEmpty);

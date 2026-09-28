@@ -31,15 +31,22 @@ class AccountSettings extends StatelessWidget {
       const SizedBox(height: 16),
       if (connection.error != null) Text(connection.error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
       if (connection.busy) const LinearProgressIndicator(),
+      const Text('主界面显示全部账户；勾选要放入小组件的账户，可上下滑动查看全部余额。'),
+      Wrap(children: [
+        TextButton(onPressed: connection.busy ? null : () => connection.selectAllWidgets(true), child: const Text('全部勾选')),
+        TextButton(onPressed: connection.busy ? null : () => connection.selectAllWidgets(false), child: const Text('全部取消')),
+      ]),
       for (final account in connection.entries) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(
         crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(account.name, style: Theme.of(context).textTheme.titleMedium),
           Text(account.provider.label),
           if (connection.errors[account.id] != null) Text(connection.errors[account.id]!),
+          CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('显示在桌面小组件'),
+            value: connection.widgetAccountIds.contains(account.id),
+            onChanged: connection.busy ? null : (value) => connection.setWidgetSelected(account.id, value!)),
           Wrap(spacing: 8, children: [
             TextButton(onPressed: connection.busy ? null : () => _edit(context, account), child: const Text('编辑')),
-            TextButton(onPressed: connection.busy ? null : () => connection.selectWidget(account.id),
-              child: Text(connection.widgetAccountId == account.id ? '正在桌面组件显示' : '显示到桌面组件')),
+
             TextButton(onPressed: connection.busy ? null : () async {
               final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
                 title: Text('移除 ${account.name}？'), content: const Text('删除本机凭据与余额，其他账户不受影响。'),

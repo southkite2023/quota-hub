@@ -60,11 +60,12 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   Future<void> _syncPersonalWidget() async {
     if (!_personal.ready || _personal.storageFailed) return;
     final raw = _personal.raw;
-    final payload = '$raw:$_hideMoney';
+    final widgetRaw = _personal.widgetRaw;
+    final payload = '$raw:$widgetRaw:$_hideMoney';
     if (payload == _lastWidgetPayload) return;
     _lastWidgetPayload = payload;
     try {
-      await WidgetBridge.showLiveSnapshot(raw, hideMoney: _hideMoney);
+      await WidgetBridge.showLiveSnapshot(raw, hideMoney: _hideMoney, widgetSnapshot: widgetRaw);
       if (mounted) setState(() => _widgetError = null);
     } catch (_) {
       _lastWidgetPayload = null;
@@ -80,7 +81,14 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
   Future<void> _initializePersonal() async {
     await _loadWidgetTarget();
-    if (mounted) { await _personal.initialize(); await _personal.readBackgroundStatus(); }
+    if (mounted) {
+      final cached = await const MethodChannel('quota_hub/widget').invokeMethod<String>('readSnapshot').catchError((_) => null);
+      await _personal.initialize(query: false);
+      _personal.restoreSnapshot(cached);
+      if (mounted) setState(() {});
+      await _personal.refresh();
+      await _personal.readBackgroundStatus();
+    }
   }
 
   void _settings() {
@@ -263,6 +271,13 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                   const SizedBox(height: 10),
                   const Text('已从桌面组件打开对应账户', style: TextStyle(color: Color(0xFF8FD8BA))),
                 ],
+                if (_android) ...[
+                  const SizedBox(height: 12),
+                  for (final account in accounts) BalanceSummary(account: account, hideMoney: _hideMoney),
+                  if (accounts.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('尚未添加账户。添加并验证后，余额会显示在这里。'))),
+                  const SizedBox(height: 20),
+                  Text('余额明细', style: Theme.of(context).textTheme.titleLarge),
+                ],
                 const SizedBox(height: 20),
                 if (!_android) Wrap(spacing: 8, runSpacing: 8, children: [
                   for (final (key, label) in [
@@ -289,12 +304,30 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                   ]);
                 }),
                 const SizedBox(height: 24),
-                Text(_android ? '打开应用或点击刷新时更新 · 不同币种分别显示' : '模拟快照：2026-09-22 · 协议 v1', style: Theme.of(context).textTheme.bodySmall),
+                Text(_android ? '按设置自动刷新 · 主界面显示全部账户 · 小组件显示勾选账户' : '模拟快照：2026-09-22 · 协议 v1', style: Theme.of(context).textTheme.bodySmall),
               ]),
             );
           },
         ),
       );
+}
+
+class BalanceSummary extends StatelessWidget {
+  const BalanceSummary({super.key, required this.account, required this.hideMoney});
+  final Account account;
+  final bool hideMoney;
+  @override
+  Widget build(BuildContext context) {
+    final balances = account.metrics.where((m) => m.key == 'available' || m.key == 'available_credit').toList();
+    return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(account.label, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        for (final metric in balances) _MetricLine(metric: metric, hideMoney: hideMoney),
+        if (balances.isEmpty) const Text('暂无可用余额'),
+      ],
+    )));
+  }
 }
 
 class _AccountCard extends StatelessWidget {
