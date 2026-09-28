@@ -15,7 +15,7 @@ void main() {
     final store = Preferences(); final manager = ApiAccounts(store: store);
     await manager.initialize();
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: ListenableBuilder(listenable: manager,
-      builder: (_, _) => ListView(children: [RefreshSettings(accounts: manager)])))));
+      builder: (context, child) => ListView(children: [RefreshSettings(accounts: manager)])))));
     await tester.tap(find.byType(DropdownButtonFormField<int>)); await tester.pumpAndSettle();
     await tester.tap(find.text('每 1 分钟').last); await tester.pumpAndSettle();
     expect(manager.refreshMinutes, 1); expect(store.data, contains('"refreshMinutes":1'));
