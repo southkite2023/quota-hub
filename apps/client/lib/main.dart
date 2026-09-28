@@ -113,9 +113,22 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_android) {
-      _personal.setForeground(state == AppLifecycleState.resumed);
-      if (state == AppLifecycleState.resumed) unawaited(_personal.readBackgroundStatus());
+      if (state == AppLifecycleState.resumed) { unawaited(_resumePersonal()); }
+      else { _personal.setForeground(false); }
     }
+  }
+
+  Future<void> _resumePersonal() async {
+    try {
+      final snapshot = await const MethodChannel('quota_hub/widget').invokeMethod<String>('readSnapshot');
+      if (mounted && _personal.ready && !_personal.busy) {
+        _personal.restoreSnapshot(snapshot);
+        setState(() {});
+      }
+    } catch (_) { /* Keep the last in-memory balance if native cache is unavailable. */ }
+    if (!mounted || WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
+    _personal.setForeground(true);
+    await _personal.readBackgroundStatus();
   }
 
   Future<void> _refreshLive() async {

@@ -116,6 +116,7 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                 }
+                "readSnapshot" -> result.success(getSharedPreferences("quota_widget", MODE_PRIVATE).getString("snapshot", null))
                 "getWidgetAccount" -> result.success(intent?.getStringExtra("accountId"))
                 "getHideMoney" -> result.success(
                     getSharedPreferences("quota_widget", MODE_PRIVATE).getBoolean("hideMoney", false)
