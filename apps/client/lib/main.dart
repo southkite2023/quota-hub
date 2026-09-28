@@ -6,11 +6,15 @@ import 'package:flutter/foundation.dart';
 
 import 'api_accounts.dart';
 import 'account_settings.dart';
+import 'background_refresh.dart';
 import 'package:flutter/services.dart';
 
 import 'snapshot.dart';
 import 'live_snapshot.dart';
 import 'widget_bridge.dart';
+
+@pragma('vm:entry-point')
+void balanceServiceMain() => startBalanceService();
 
 void main() => runApp(const QuotaHubApp());
 
@@ -38,7 +42,7 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
+class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   late final Future<List<DemoCase>> _cases = rootBundle.loadString('assets/cases.json').then(parseDemoCases);
   String _selected = 'overview';
   bool _hideMoney = false;
@@ -76,7 +80,7 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _initializePersonal() async {
     await _loadWidgetTarget();
-    if (mounted) await _personal.initialize();
+    if (mounted) { await _personal.initialize(); await _personal.readBackgroundStatus(); }
   }
 
   void _settings() {
@@ -85,21 +89,32 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _personal.removeListener(_personalChanged);
-    // In-flight requests may finish after leaving the dashboard.
+    _personal.dispose();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetBridge.listen(_openWidgetAccount);
     if (_android) {
+      _personal.setForeground(WidgetsBinding.instance.lifecycleState == null || WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed);
       _personal.addListener(_personalChanged);
       unawaited(_initializePersonal());
     } else {
       unawaited(_loadWidgetTarget());
       if (_serverConfigured) unawaited(_refreshLive());
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_android) {
+      _personal.setForeground(state == AppLifecycleState.resumed);
+      if (state == AppLifecycleState.resumed) unawaited(_personal.readBackgroundStatus());
     }
   }
 
@@ -218,6 +233,7 @@ class _DashboardState extends State<Dashboard> {
                 if (_android) ...[
                   const SizedBox(height: 12),
                   if (!_personal.ready || _personal.busy) const LinearProgressIndicator(),
+                  Text(_personal.refreshMinutes == 0 ? '自动刷新已关闭' : '自动刷新：每 ${_personal.refreshMinutes} 分钟'),
                   if (_personal.error != null) Text(_personal.error!, style: const TextStyle(color: Color(0xFFFFC77D))),
                   for (final entry in _personal.entries.where((e) => _personal.errors.containsKey(e.id))) Text('${entry.name}：${_personal.errors[entry.id]}', style: const TextStyle(color: Color(0xFFFFC77D))),
                   if (_widgetError != null) Text(_widgetError!, style: const TextStyle(color: Color(0xFFFFC77D))),

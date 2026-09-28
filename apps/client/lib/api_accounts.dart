@@ -224,7 +224,8 @@ class BalanceApi {
 }
 
 class ApiAccounts extends ChangeNotifier {
-  ApiAccounts({AccountsStore? store, BalanceApi? api}) : _store = store ?? AndroidAccountsStore(), _api = api ?? BalanceApi();
+  ApiAccounts({AccountsStore? store, BalanceApi? api, DateTime Function()? now}) : _now = now ?? DateTime.now, _store = store ?? AndroidAccountsStore(), _api = api ?? BalanceApi();
+  final DateTime Function() _now;
   final AccountsStore _store;
   final BalanceApi _api;
   List<ApiAccount> _entries = [];
@@ -232,6 +233,73 @@ class ApiAccounts extends ChangeNotifier {
   final Map<String, String> errors = {};
   String? widgetAccountId;
   bool ready = false, busy = false, storageFailed = false;
+  int refreshMinutes = 5;
+  bool backgroundRefresh = false;
+  String? backgroundStatus;
+  Timer? _refreshTimer;
+  DateTime? nextRefreshAt;
+  bool _foreground = false, _disposed = false;
+
+  void _emit() { if (!_disposed) notifyListeners(); }
+  void setForeground(bool value) {
+    if (_disposed || _foreground == value) return;
+    _foreground = value;
+    _scheduleRefresh();
+  }
+  void _scheduleRefresh({bool reset = false}) {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    if (_disposed || !ready || storageFailed || !connected || refreshMinutes == 0) {
+      nextRefreshAt = null;
+      return;
+    }
+    if (reset || nextRefreshAt == null) nextRefreshAt = _now().add(Duration(minutes: refreshMinutes));
+    if (!_foreground || busy) return;
+    final remaining = nextRefreshAt!.difference(_now());
+    _refreshTimer = Timer(remaining.isNegative ? Duration.zero : remaining, () {
+      _refreshTimer = null;
+      unawaited(refresh());
+    });
+  }
+  Future<bool> setRefreshMinutes(int minutes) async {
+    if (minutes < 0 || minutes > 1440 || busy || !ready || storageFailed || _disposed) return false;
+    busy = true; error = null; _emit();
+    var saved = false;
+    try {
+      await _store.write(_serialize(_entries, widgetAccountId, minutes: minutes));
+      refreshMinutes = minutes;
+      saved = true;
+      return true;
+    } catch (_) { error = '刷新设置保存失败，原设置未更改。'; return false; }
+    finally { busy = false; _scheduleRefresh(reset: saved); _emit(); }
+  }
+  Future<void> readBackgroundStatus() async {
+    if (_store is! AndroidAccountsStore || _disposed) return;
+    try { backgroundStatus = await const MethodChannel('quota_hub/refresh').invokeMethod<String>('status'); } catch (_) { backgroundStatus = '无法读取后台刷新状态'; }
+    _emit();
+  }
+  Future<bool> setBackgroundRefresh(bool enabled) async {
+    if (busy || !ready || storageFailed || _disposed) return false;
+    busy = true; error = null; _emit();
+    try {
+      if (enabled && _store is AndroidAccountsStore) {
+        final granted = await const MethodChannel('quota_hub/refresh').invokeMethod<bool>('requestNotifications');
+        if (granted != true) { error = '后台刷新需要通知权限，请在系统设置中允许通知后重试。'; return false; }
+      }
+      await _store.write(_serialize(_entries, widgetAccountId, background: enabled));
+      backgroundRefresh = enabled;
+      if (_store is AndroidAccountsStore) await const MethodChannel('quota_hub/refresh').invokeMethod<void>(enabled ? 'start' : 'stop');
+      await readBackgroundStatus();
+      return true;
+    } catch (_) { error = '后台刷新未能启动，请检查通知权限后重试。'; return false; }
+    finally { busy = false; _scheduleRefresh(); _emit(); }
+  }
+  @override
+  void dispose() {
+    _disposed = true;
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
   String? error;
   List<ApiAccount> get entries => List.unmodifiable(_entries);
   bool get connected => _entries.isNotEmpty;
@@ -252,7 +320,7 @@ class ApiAccounts extends ChangeNotifier {
       'metrics': [{'key': entry.provider == BalanceProvider.aliyun ? 'available_credit' : 'available', 'kind': 'money', 'state': 'unknown', 'value': null, 'unit': currency}],
     }]};
   }
-  Future<void> initialize() async {
+  Future<void> initialize({bool query = true}) async {
     try {
       final raw = await _store.read();
       if (raw != null) {
@@ -262,17 +330,33 @@ class ApiAccounts extends ChangeNotifier {
         if (entries.length > 20 || entries.map((e) => e.id).toSet().length != entries.length) throw const FormatException();
         _entries = entries;
         widgetAccountId = data['widgetAccountId'] as String?;
+        final interval = data['refreshMinutes'] ?? 5;
+        if (interval is! int || interval < 0 || interval > 1440) throw const FormatException();
+        refreshMinutes = interval;
+        backgroundRefresh = data['backgroundRefresh'] == true;
       }
     } catch (_) { storageFailed = true; error = '无法读取已保存账户。为避免覆盖原数据，暂时不能更改账户，请重启应用重试。'; }
-    ready = true; notifyListeners();
-    if (connected) await refresh();
+    ready = true; _emit();
+    if (query && connected) await refresh();
   }
-  String _serialize(List<ApiAccount> entries, String? selected) => jsonEncode({
-    'version': 1, 'widgetAccountId': selected, 'accounts': entries.map((e) => e.toJson()).toList(),
+  void restoreSnapshot(String? source) {
+    if (source == null) return;
+    try {
+      final raw = jsonDecode(source) as Map<String, dynamic>;
+      DemoCase.fromJson({...raw, 'name': 'cached'});
+      for (final entry in _entries) {
+        final matching = (raw['accounts'] as List).where((item) => item['provider'] == entry.provider.name &&
+          (item['metrics'] as List).isNotEmpty && item['id'] == '${entry.id}_${(item['metrics'][0]['unit'] as String).toLowerCase()}').toList();
+        if (matching.isNotEmpty) _snapshots[entry.id] = {...raw, 'accounts': matching};
+      }
+    } catch (_) { /* Ignore invalid snapshots, never the encrypted account configuration. */ }
+  }
+  String _serialize(List<ApiAccount> entries, String? selected, {int? minutes, bool? background}) => jsonEncode({
+    'version': 1, 'backgroundRefresh': background ?? backgroundRefresh, 'refreshMinutes': minutes ?? refreshMinutes, 'widgetAccountId': selected, 'accounts': entries.map((e) => e.toJson()).toList(),
   });
   Future<bool> save(ApiAccount candidate) async {
-    if (busy || !ready || storageFailed) return false;
-    busy = true; error = null; notifyListeners();
+    if (busy || !ready || storageFailed || _disposed) return false;
+    busy = true; error = null; _emit();
     try {
       candidate.validate();
       final next = [..._entries];
@@ -286,11 +370,18 @@ class ApiAccounts extends ChangeNotifier {
       return true;
     } on DeepSeekFailure catch (failure) { error = failure.message; return false; }
     catch (_) { error = '本机保存失败，原有账户未更改。'; return false; }
-    finally { busy = false; notifyListeners(); }
+    finally { busy = false; _scheduleRefresh(); _emit(); }
   }
   Future<void> refresh() async {
-    if (busy || !connected) return;
-    busy = true; error = null; notifyListeners();
+    if (busy || !ready || storageFailed || !connected || _disposed) return;
+    _refreshTimer?.cancel();
+    busy = true;
+    var lease = false;
+    if (_store is AndroidAccountsStore) {
+      try { lease = await const MethodChannel('quota_hub/refresh').invokeMethod<bool>('acquire') ?? false; } catch (_) { lease = false; }
+      if (!lease) { busy = false; _scheduleRefresh(reset: true); _emit(); return; }
+    }
+    busy = true; error = null; _emit();
     await Future.wait(_entries.map((entry) async {
       try { _snapshots[entry.id] = await _api.fetch(entry); errors.remove(entry.id); }
       catch (caught) {
@@ -305,11 +396,14 @@ class ApiAccounts extends ChangeNotifier {
         _snapshots[entry.id] = snapshot;
       }
     }));
-    busy = false; notifyListeners();
+    if (lease) {
+      try { await const MethodChannel('quota_hub/refresh').invokeMethod<void>('release'); } catch (_) { /* Native lease is also released on activity teardown. */ }
+    }
+    busy = false; _scheduleRefresh(reset: true); _emit();
   }
   Future<bool> remove(String id) async {
-    if (busy || !ready || storageFailed) return false;
-    busy = true; error = null; notifyListeners();
+    if (busy || !ready || storageFailed || _disposed) return false;
+    busy = true; error = null; _emit();
     try {
       final next = _entries.where((e) => e.id != id).toList();
       final selected = widgetAccountId == id ? (next.isEmpty ? null : next.first.id) : widgetAccountId;
@@ -317,13 +411,13 @@ class ApiAccounts extends ChangeNotifier {
       _entries = next; widgetAccountId = selected; _snapshots.remove(id); errors.remove(id);
       return true;
     } catch (_) { error = '移除失败，请重试。'; return false; }
-    finally { busy = false; notifyListeners(); }
+    finally { busy = false; _scheduleRefresh(); _emit(); }
   }
   Future<void> selectWidget(String id) async {
-    if (busy || storageFailed || !_entries.any((e) => e.id == id)) return;
-    busy = true; error = null; notifyListeners();
+    if (_disposed || busy || storageFailed || !_entries.any((e) => e.id == id)) return;
+    busy = true; error = null; _emit();
     try { await _store.write(_serialize(_entries, id)); widgetAccountId = id; }
     catch (_) { error = '组件账户设置保存失败，请重试。'; }
-    finally { busy = false; notifyListeners(); }
+    finally { busy = false; _scheduleRefresh(); _emit(); }
   }
 }

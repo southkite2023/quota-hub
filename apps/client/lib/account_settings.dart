@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_accounts.dart';
+import 'refresh_settings.dart';
 import 'deepseek_connection.dart';
 
 const _catalog = <({String id, String label, BalanceProvider? provider, String note})>[
@@ -24,6 +25,8 @@ class AccountSettings extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(listenable: connection, builder: (context, _) => Scaffold(
     appBar: AppBar(title: const Text('余额账户')),
     body: SafeArea(child: ListView(padding: const EdgeInsets.all(20), children: [
+      RefreshSettings(accounts: connection),
+      const SizedBox(height: 16),
       const Text('多平台、多账户，余额分别显示。凭据在本机加密保存。'),
       const SizedBox(height: 16),
       if (connection.error != null) Text(connection.error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
