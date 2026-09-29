@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:quota_hub/api_accounts.dart';
 import 'package:quota_hub/account_settings.dart';
+import 'package:quota_hub/main.dart';
+import 'package:quota_hub/snapshot.dart';
 
 class MemoryVault implements AccountsStore {
   String? data;
@@ -56,6 +58,38 @@ void main() {
     expect(manager.entries.single.provider, BalanceProvider.openrouter);
     expect(manager.entries.single.name, '工作 OpenRouter');
     expect(find.text('工作 OpenRouter'), findsOneWidget);
+  });
+  for (final choice in ['Kimi（国内站）', 'OpenAI · 本月费用', '智谱 · 实验性余额']) {
+    testWidgets('$choice can be configured and saved', (tester) async {
+      final isKimi = choice.startsWith('Kimi');
+      final isZhipu = choice.startsWith('智谱');
+      final manager = ApiAccounts(store: MemoryVault(), api: BalanceApi(clientFactory: () => MockClient((_) async => http.Response(isKimi
+        ? '{"code":0,"status":true,"data":{"available_balance":3,"voucher_balance":1,"cash_balance":2}}'
+        : isZhipu ? '{"code":200,"data":{"availableBalance":10}}' : '{"object":"page","data":[],"has_more":false}', 200))));
+      await manager.initialize();
+      await tester.pumpWidget(MaterialApp(home: AccountEditor(connection: manager)));
+      await tester.tap(find.byType(DropdownButtonFormField<String>)); await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(choice).last);
+      await tester.tap(find.text(choice).last); await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsNWidgets(2));
+      if (!isKimi && !isZhipu) expect(find.text('Admin API Key'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).last, 'fake-key');
+      await tester.ensureVisible(find.text('验证并保存'));
+      await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
+      expect(manager.entries.single.provider, isKimi ? BalanceProvider.kimi : isZhipu ? BalanceProvider.zhipu : BalanceProvider.openai);
+    });
+  }
+  testWidgets('OpenAI summary distinguishes costs from unknown balance and hides amounts', (tester) async {
+    final account = Account(id: 'openai_usd', provider: 'openai', label: 'OpenAI 费用', lastSuccessAt: DateTime.utc(2026, 9, 29), metrics: const [
+      Metric(key: 'available', kind: 'money', state: MetricState.unknown, value: null, unit: 'USD'),
+      Metric(key: 'month_spent', kind: 'money', state: MetricState.ok, value: '12.34', unit: 'USD'),
+    ]);
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: BalanceSummary(account: account, hideMoney: false))));
+    expect(find.text('本月费用（UTC）'), findsOneWidget);
+    expect(find.text('12.34 USD'), findsOneWidget);
+    expect(find.text('未知'), findsNWidgets(2));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: BalanceSummary(account: account, hideMoney: true))));
+    expect(find.text('12.34 USD'), findsNothing);
   });
   testWidgets('unavailable provider explains limitation without collecting a key', (tester) async {
     final manager = ApiAccounts(store: MemoryVault()); await manager.initialize();
