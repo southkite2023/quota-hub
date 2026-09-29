@@ -1,0 +1,76 @@
+name: Publish verified 0.5.0 APK once
+on:
+  pull_request:
+    types: [synchronize]
+    paths: ['.github/workflows/publish-0.5.0-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: publish-quota-hub-0.5.0
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'southkite2023/quota-hub' && github.event.pull_request.number == 8 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/multi-balance-widget'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: southkite2023/quota-hub
+      SOURCE_SHA: fc31f95ae44d26fff8388654a9f47fbc69fc1738
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fc31f95ae44d26fff8388654a9f47fbc69fc1738
+          persist-credentials: false
+      - name: Verify source and artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api repos/$GH_REPO/actions/runs/36505744396 > run.json
+          jq -e --arg sha "$SOURCE_SHA" '.conclusion == "success" and .head_sha == $sha' run.json
+          gh api repos/$GH_REPO/actions/artifacts/11006558231 > artifact.json
+          jq -e --arg sha "$SOURCE_SHA" '.name == "quota-hub-android-signed" and .expired == false and .workflow_run.head_sha == $sha and .workflow_run.id == 36505744396 and .digest == "sha256:1a9010a00d368abd5e8dec85209e6d94fc7a0ca251f5f6f6504e5e1db3b377f8"' artifact.json
+          gh api repos/$GH_REPO/actions/artifacts/11006558231/zip > artifact.zip
+          echo '1a9010a00d368abd5e8dec85209e6d94fc7a0ca251f5f6f6504e5e1db3b377f8  artifact.zip' | sha256sum -c -
+          mkdir package
+          unzip -q artifact.zip -d package
+          test "$(find package -name '*.apk' | wc -l)" -eq 1
+          mv package/quota-hub-android-signed.apk quota-hub-0.5.0-android.apk
+          signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$signer" verify --verbose --print-certs quota-hub-0.5.0-android.apk | tee certificate.txt
+          actual=$(sed -n 's/^.*Signer.*certificate SHA-256 digest: //p' certificate.txt | tr '[:upper:]' '[:lower:]' | tr -d '\r' | sort -u)
+          expected=$(tr -d '\r\n' < docs/ANDROID_SIGNING_SHA256.txt)
+          test "$actual" = "$expected"
+          aapt=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+          "$aapt" dump badging quota-hub-0.5.0-android.apk > badging.txt
+          grep "^package: name='com.example.quota_hub' versionCode='6' versionName='0.5.0'" badging.txt
+          sha256sum quota-hub-0.5.0-android.apk > SHA256SUMS.txt
+      - name: Publish verified APK and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api repos/$GH_REPO/releases --paginate --jq '.[].tag_name' > existing-tags.txt
+          if grep -qx v0.5.0 existing-tags.txt; then echo 'Release already exists; refusing overwrite'; exit 1; fi
+          cat > release-notes.md <<'NOTES'
+          ## 0.5.0 测试版：主界面余额与多账户小组件
+
+          - 主界面新增全部账户余额概览，显示币种及失败/过期状态，打开应用先恢复上次余额再刷新。
+          - 桌面小组件支持多选、全选与取消，可滚动查看全部勾选账户和多币种余额；首页不受勾选影响。
+          - 前后台自动刷新同步更新完整余额缓存与小组件勾选项，兼容旧版单选配置。
+          - 首次采用长期固定签名，后续公开版本沿用同一密钥。
+
+          **安装说明：0.3.0/0.4.0 使用的临时调试私钥未保留，不能直接覆盖安装本版。请先自行保留账户配置和 API 凭据，再卸载旧版、安装本版；卸载会删除本机数据。从本固定签名版本开始，后续同包名且签名一致的更高版本可覆盖更新。**
+
+          验证：52 项 Flutter 测试、静态检查以及 Web、Android、Windows、macOS/iOS 模拟器构建通过；合约和服务端 17 项本地测试通过。固定签名及 APK 版本 0.5.0+6 已校验。
+
+          本包为 Debug 测试构建，尚未完成真机界面、小组件滚动、覆盖更新和长时间后台刷新验收。后台刷新受 Android 省电与前台服务时长限制，不能保证每分钟准时。
+
+          构建来源：源码 fc31f95ae44d26fff8388654a9f47fbc69fc1738，工作流 36505744396，固定签名产物 11006558231。直接使用已验证产物，未重新构建。
+          证书 SHA-256：46b9dc0f50187f7fd127e1bd962ba90384d270c02ccaf2b2e093213ab50f907b
+
+          下载 quota-hub-0.5.0-android.apk；SHA256SUMS.txt 用于校验下载完整性。Latest 表示最新下载版本，不表示已完成正式版验收。
+          NOTES
+          gh release create v0.5.0 quota-hub-0.5.0-android.apk SHA256SUMS.txt --target "$SOURCE_SHA" --title '0.5.0 测试版 · 主界面余额与多账户小组件' --notes-file release-notes.md --draft
+          gh release edit v0.5.0 --draft=false --latest
