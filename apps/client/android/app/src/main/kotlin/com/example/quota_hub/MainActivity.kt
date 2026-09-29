@@ -52,7 +52,7 @@ class MainActivity : FlutterActivity() {
                         "saveKey", "removeKey" -> {
                             if (call.method == "saveKey") keyStore.save(call.arguments as String)
                             else keyStore.remove()
-                            getSharedPreferences("quota_widget", MODE_PRIVATE).edit().remove("snapshot").commit()
+                            getSharedPreferences("quota_widget", MODE_PRIVATE).edit().remove("snapshot").remove("widget_snapshot").commit()
                             QuotaWidgetProvider.refreshAll(this)
                             result.success(null)
                         }
@@ -89,7 +89,7 @@ class MainActivity : FlutterActivity() {
                             // New vault (including an empty list) takes precedence over the legacy file.
                             runCatching { keyStore.remove() }
                             runCatching {
-                                getSharedPreferences("quota_widget", MODE_PRIVATE).edit().remove("snapshot").commit()
+                                getSharedPreferences("quota_widget", MODE_PRIVATE).edit().remove("snapshot").remove("widget_snapshot").commit()
                                 QuotaWidgetProvider.refreshAll(this)
                             }
                             result.success(null)
@@ -105,11 +105,13 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "saveSnapshot" -> {
                     val snapshot = call.argument<String>("snapshot")
-                    if (snapshot == null || snapshot.length > 65536 || !validSnapshot(snapshot)) {
+                    val widgetSnapshot = call.argument<String>("widgetSnapshot") ?: snapshot
+                    if (snapshot == null || snapshot.length > 65536 || !validSnapshot(snapshot) || widgetSnapshot == null || widgetSnapshot.length > 65536 || !validSnapshot(widgetSnapshot)) {
                         result.error("INVALID_SNAPSHOT", "Expected a version 1 demo snapshot", null)
                     } else {
                         getSharedPreferences("quota_widget", MODE_PRIVATE).edit()
                             .putString("snapshot", snapshot)
+                            .putString("widget_snapshot", widgetSnapshot)
                             .putBoolean("hideMoney", call.argument<Boolean>("hideMoney") ?: false)
                             .apply()
                         QuotaWidgetProvider.refreshAll(this)
