@@ -1,9 +1,9 @@
 # Android 安装包分发
 
-用户指定 GitHub Releases 为安装包下载入口。当前版本：[0.4.0 测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.4.0)。
+用户指定 GitHub Releases 为安装包下载入口。当前版本：[0.5.0 测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.5.0)。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
-- [0.4.0 APK 直接下载](https://github.com/southkite2023/quota-hub/releases/download/v0.4.0/quota-hub-0.4.0-android.apk)
+- [0.5.0 APK 直接下载](https://github.com/southkite2023/quota-hub/releases/download/v0.5.0/quota-hub-0.5.0-android.apk)
 
 ## 每次发布
 
@@ -17,6 +17,10 @@
 
 ## 当前包
 
-0.4.0+5 使用已经通过验证的 Debug APK，源码为 `b5b52f83b2cfef04c99a72e5b132fde475f572a9`，来自原生构建 `36397284226`。发布时沿用该构建产物，未重新打包。与 0.3.0 的调试签名不同，不能覆盖安装；用户须自行保留配置和密钥后卸载、重装，卸载会删除本机数据。后续需建立持久的安全签名配置，避免测试包每次签名变化。真实账户、Android 真机及长时间锁屏验收仍待完成。
+0.5.0+6 为固定签名的 Debug 测试 APK，源码 `fc31f95ae44d26fff8388654a9f47fbc69fc1738`，来自原生构建 `36505744396` 的 `quota-hub-android-signed`（产物 ID `11006558231`）。发布工作流 `36506563622` 校验产物 ZIP 摘要、APK 包名与版本、固定证书指纹后，于 2026-09-29 发布并设为 Latest，未重新构建。
 
-本次发布使用的一次性工作流已在成功后移除，避免以后更新 PR 时意外重复发布。以后按上述流程发布对应版本。
+APK SHA-256：`389a096212483bd9f6d4dec984073e6fccc7e45456864890110af1424dfcb74b`。Release 同时提供 `SHA256SUMS.txt`。
+
+旧版 0.3.0/0.4.0 临时调试私钥未保留，首次迁移不能覆盖安装；请自行保留配置和凭据后卸载旧版、重装本版，卸载会删除本机数据。以后公开版本沿用固定密钥。真机显示、组件滚动、覆盖更新及长时间后台刷新仍待验收。
+
+本次一次性发布工作流在成功后移除，避免以后更新 PR 时意外重复发布。
