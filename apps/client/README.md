@@ -47,8 +47,8 @@ Android runner 中加入了一个 AppWidget。安装新的调试 APK 后先打�
 
 首页“管理 / 添加 API 账户”可以新增多个平台账户、修改名称与 Key、单独移除，以及选择桌面组件展示哪个账户。同一平台可配置多个 Key；余额不跨账户或币种求和。默认不再在 Android 首页混入订阅和阿里云演示卡片。
 
-当前内置适配：DeepSeek、OpenRouter、OneAPI 兼容货币账单接口；另有自定义 HTTPS GET + Bearer + JSON 数值字段接入。服务商目录按用户优先级排列；硅基流动、阿里云百炼、智谱、Kimi、OpenAI 目前明确显示待适配，不收集 Key、不发起请求。详见 [平台接入说明](../../docs/PROVIDERS.md)。
+当前内置适配：DeepSeek、OpenRouter、Kimi 国内站余额、阿里云和腾讯云费用账户、OneAPI 兼容货币账单接口，OpenAI 组织本月费用（余额未知），以及智谱实验性余额接口；另有自定义 HTTPS GET + Bearer + JSON 数值字段接入。Kimi 使用国内开放平台 Key，OpenAI 使用组织 Admin API Key。智谱基于官方控制台接口，普通 API Key 是否可用尚待验证；硅基流动旧接口已停用，暂不收集该平台的 Key、不发起请求。详见 [平台接入说明](../../docs/PROVIDERS.md)。
 
 升级时读取旧版加密保存的 DeepSeek Key；首次账户设置变更会写入新的加密账户库并移除旧文件。即使新账户列表为空，也不会重新导入旧凭据。账号库读取失败时禁止覆盖保存，提示重试。每个账户独立处理刷新失败与旧值过期；改变平台/自定义地址需要重新输入 Key，避免把旧平台凭据发到新地址。
 
-自定义平台与 OneAPI 验证前会显示目标地址并要求确认；不跟随重定向。自定义接口暂不支持 Cookie、签名认证、POST、任意请求头或公式，字段缺失不视为零。OneAPI 需开放 `/api/status`、`/v1/dashboard/billing/subscription` 和 `/v1/dashboard/billing/usage`，用户按站点选择币种。无法确认货币计费时拒绝查询；无限额度不转换为巨额余额。
+自定义平台与 OneAPI 验证前会显示目标地址并要求确认；不跟随重定向。自定义接口暂不支持 Cookie、签名认证、POST、任意请求头或公式，字段缺失不视为零。OneAPI 需开放 `/api/status`、`/v1/dashboard/billing/subscription` 和 `/v1/dashboard/billing/usage`，用户按站点选择币种，可填根地址或以 `/v1` 结尾的 API 地址。无法确认货币计费时拒绝查询；无限额度不转换为巨额余额。

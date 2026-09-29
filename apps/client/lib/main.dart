@@ -318,7 +318,7 @@ class BalanceSummary extends StatelessWidget {
   final bool hideMoney;
   @override
   Widget build(BuildContext context) {
-    final balances = account.metrics.where((m) => m.key == 'available' || m.key == 'available_credit').toList();
+    final balances = account.metrics.where((m) => m.key == 'available' || m.key == 'available_credit' || m.key == 'month_spent').toList();
     return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(account.label, style: Theme.of(context).textTheme.titleMedium),
@@ -346,6 +346,9 @@ class _AccountCard extends StatelessWidget {
       'subscription' => '代理订阅',
       'aliyun' => '阿里云',
       'tencent' => '腾讯云',
+      'kimi' => 'Kimi（国内站）',
+      'openai' => 'OpenAI · 本月费用',
+      'zhipu' => '智谱 · 实验性余额',
       _ => account.provider,
     };
     return Card(
@@ -393,6 +396,9 @@ class _MetricLine extends StatelessWidget {
       'cash' => '充值余额',
       'purchased' => '累计购买额度',
       'spent' => '已用额度',
+      'month_spent' => '本月费用（UTC）',
+      'voucher' => '代金券余额',
+      'frozen' => '冻结余额',
       'remaining' => '剩余流量',
       'expires_at' => '到期时间',
       _ => metric.key,

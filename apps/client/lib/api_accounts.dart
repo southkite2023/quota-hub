@@ -10,8 +10,9 @@ import 'deepseek_connection.dart';
 import 'snapshot.dart';
 import 'aliyun_balance.dart';
 import 'tencent_balance.dart';
+import 'openai_costs.dart';
 
-enum BalanceProvider { deepseek, openrouter, oneapi, custom, aliyun, tencent }
+enum BalanceProvider { deepseek, openrouter, oneapi, custom, aliyun, tencent, kimi, openai, zhipu }
 
 extension ProviderLabel on BalanceProvider {
   bool get isCloud => this == BalanceProvider.aliyun || this == BalanceProvider.tencent;
@@ -22,6 +23,9 @@ extension ProviderLabel on BalanceProvider {
     BalanceProvider.custom => '自定义余额接口',
     BalanceProvider.aliyun => '阿里云',
     BalanceProvider.tencent => '腾讯云',
+    BalanceProvider.kimi => 'Kimi（国内站）',
+    BalanceProvider.zhipu => '智谱 · 实验性余额',
+    BalanceProvider.openai => 'OpenAI · 本月费用',
   };
 }
 
@@ -32,6 +36,9 @@ class ApiAccount {
   final String id, name, key, endpoint, balancePath, currency, accessKeyId;
   final BalanceProvider provider;
   Uri get uri => switch (provider) {
+    BalanceProvider.zhipu => Uri.https('open.bigmodel.cn', '/api/biz/account/query-customer-account-report'),
+    BalanceProvider.kimi => Uri.https('api.moonshot.cn', '/v1/users/me/balance'),
+    BalanceProvider.openai => Uri.https('api.openai.com', '/v1/organization/costs'),
     BalanceProvider.tencent => Uri.https('billing.tencentcloudapi.com', '/'),
     BalanceProvider.aliyun => Uri.https('business.aliyuncs.com', '/'),
     BalanceProvider.deepseek => Uri.https('api.deepseek.com', '/user/balance'),
@@ -119,7 +126,9 @@ String decimalHundredth(Object value) {
 }
 
 class BalanceApi {
-  BalanceApi({http.Client Function()? clientFactory}) : _factory = clientFactory ?? http.Client.new;
+  BalanceApi({http.Client Function()? clientFactory, DateTime Function()? now})
+      : _factory = clientFactory ?? http.Client.new, _now = now ?? DateTime.now;
+  final DateTime Function() _now;
   final http.Client Function() _factory;
   Future<Map<String, dynamic>> fetch(ApiAccount account) async {
     account.validate();
@@ -131,8 +140,9 @@ class BalanceApi {
       if (account.provider == BalanceProvider.tencent) return await fetchTencentBalance(client, account);
       if (account.provider == BalanceProvider.aliyun) return await fetchAliyunBalance(client, account);
       if (account.provider == BalanceProvider.oneapi) return await _oneApi(client, account);
+      if (account.provider == BalanceProvider.openai) return await fetchOpenAiCosts(client, account, _now().toUtc());
       final request = http.Request('GET', account.uri)..followRedirects = false
-        ..headers.addAll({'Authorization': 'Bearer ${account.key}', 'Accept': 'application/json'});
+        ..headers.addAll({'Authorization': account.provider == BalanceProvider.zhipu ? account.key : 'Bearer ${account.key}', 'Accept': 'application/json'});
       final response = await (() async => http.Response.fromStream(await client.send(request)))()
           .timeout(const Duration(seconds: 12));
       if (response.statusCode == 401 || response.statusCode == 403) {
@@ -143,6 +153,10 @@ class BalanceApi {
       if (response.statusCode == 429) throw const DeepSeekFailure('查询过频，请稍后重试。', 'rate_limited');
       if (response.statusCode != 200) throw const DeepSeekFailure('平台暂时无法查询，请稍后重试。', 'provider_unavailable');
       final data = jsonDecode(response.body);
+      if (account.provider == BalanceProvider.zhipu && data is Map &&
+          {401, 403, 1001, 1002, 1003}.contains(data['code'])) {
+        throw const DeepSeekFailure('智谱实验性余额接口未授权；该接口可能不接受此 API Key，请在官网查询。', 'unauthorized');
+      }
       if (data is Map && (data['error'] != null || data['success'] == false)) throw const FormatException();
       final metrics = <Map<String, dynamic>>[];
       void money(String key, String amount, String currency) => metrics.add({
@@ -155,6 +169,21 @@ class BalanceApi {
         money('available', decimalDifference(data['data']['total_credits'], data['data']['total_usage']), currency);
         money('purchased', decimalValue(data['data']['total_credits']), currency);
         money('spent', decimalValue(data['data']['total_usage']), currency);
+      } else if (account.provider == BalanceProvider.zhipu) {
+        if (data is! Map || data['code'] != 200 || data['data'] is! Map) throw const FormatException();
+        currency = 'CNY';
+        money('available', decimalValue(data['data']['availableBalance']), currency);
+        for (final pair in [('cash_balance', 'cashBalance'), ('frozen', 'frozenBalance')]) {
+          if (data['data'][pair.$2] != null) money(pair.$1, decimalValue(data['data'][pair.$2]), currency);
+        }
+      } else if (account.provider == BalanceProvider.kimi) {
+        if (data is! Map || data['code'] != 0 || data['status'] != true || data['data'] is! Map) {
+          throw const FormatException();
+        }
+        currency = 'CNY';
+        for (final pair in [('available', 'available_balance'), ('voucher', 'voucher_balance'), ('cash_balance', 'cash_balance')]) {
+          money(pair.$1, decimalValue(data['data'][pair.$2]), currency);
+        }
       } else {
         dynamic value = data;
         for (final part in account.balancePath.split('.')) {
@@ -167,7 +196,7 @@ class BalanceApi {
       final now = DateTime.now().toUtc().toIso8601String();
       return {'schemaVersion': 1, 'generatedAt': now, 'accounts': [{
         'id': '${account.id}_${currency.toLowerCase()}', 'provider': account.provider.name,
-        'label': '${account.name} · $currency', 'lastSuccessAt': now, 'metrics': metrics,
+        'label': '${account.name} · $currency${account.provider == BalanceProvider.zhipu ? ' · 实验性' : ''}', 'lastSuccessAt': now, 'metrics': metrics,
       }]};
     } on DeepSeekFailure { rethrow; }
     on TimeoutException { throw const DeepSeekFailure('连接超时，请重试。', 'timeout'); }
@@ -176,7 +205,7 @@ class BalanceApi {
     finally { client.close(); }
   }
   Future<Map<String, dynamic>> _oneApi(http.Client client, ApiAccount account) async {
-    final base = account.endpoint.replaceFirst(RegExp(r'/+$'), '');
+    final base = account.endpoint.replaceFirst(RegExp(r'/+$'), '').replaceFirst(RegExp(r'/v1$'), '');
     Future<Map<String, dynamic>> get(String path, {bool authenticated = true}) async {
       final request = http.Request('GET', Uri.parse('$base$path'))..followRedirects = false
         ..headers['Accept'] = 'application/json';
@@ -318,7 +347,7 @@ class ApiAccounts extends ChangeNotifier {
     'accounts': [for (final entry in _entries.where((e) => _widgetAccountIds.contains(e.id)))
       ...((_snapshots[entry.id] ?? _empty(entry))['accounts'] as List)]});
   Map<String, dynamic> _empty(ApiAccount entry) {
-    final currency = (entry.provider == BalanceProvider.deepseek || entry.provider.isCloud) ? 'CNY' : entry.provider == BalanceProvider.openrouter ? 'USD' : entry.currency;
+    final currency = (entry.provider == BalanceProvider.deepseek || entry.provider == BalanceProvider.kimi || entry.provider == BalanceProvider.zhipu || entry.provider.isCloud) ? 'CNY' : (entry.provider == BalanceProvider.openrouter || entry.provider == BalanceProvider.openai) ? 'USD' : entry.currency;
     return {'schemaVersion': 1, 'generatedAt': DateTime.now().toUtc().toIso8601String(), 'accounts': [{
       'id': '${entry.id}_${currency.toLowerCase()}', 'provider': entry.provider.name,
       'label': '${entry.name} · $currency', 'lastSuccessAt': null,
