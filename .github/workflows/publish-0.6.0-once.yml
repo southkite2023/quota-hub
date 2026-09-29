@@ -1,0 +1,83 @@
+name: Publish verified 0.6.0 APK once
+on:
+  pull_request:
+    types: [synchronize]
+    paths: ['.github/workflows/publish-0.6.0-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: publish-quota-hub-0.6.0
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'southkite2023/quota-hub' && github.event.pull_request.number == 9 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/provider-balances-0.6'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: southkite2023/quota-hub
+      SOURCE_SHA: 9894a53d8aa6e90ab85b05ee2095b678f17c44d3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 9894a53d8aa6e90ab85b05ee2095b678f17c44d3
+          persist-credentials: false
+      - name: Verify source and artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run in 36529877814 36529877779 36529877833; do
+            gh api "repos/$GH_REPO/actions/runs/$run" > run.json
+            jq -e --arg sha "$SOURCE_SHA" '.conclusion == "success" and .head_sha == $sha' run.json
+          done
+          gh api repos/$GH_REPO/actions/artifacts/11016217201 > artifact.json
+          jq -e --arg sha "$SOURCE_SHA" '.name == "quota-hub-android-signed" and .expired == false and .workflow_run.head_sha == $sha and .workflow_run.id == 36529877814 and .digest == "sha256:d86cdaefc9f32dafeda885f0f303f6dc2124639c1538d9413f01435c51efd77e"' artifact.json
+          gh api repos/$GH_REPO/actions/artifacts/11016217201/zip > artifact.zip
+          echo 'd86cdaefc9f32dafeda885f0f303f6dc2124639c1538d9413f01435c51efd77e  artifact.zip' | sha256sum -c -
+          mkdir package
+          unzip -q artifact.zip -d package
+          test "$(find package -name '*.apk' | wc -l)" -eq 1
+          mv package/quota-hub-android-signed.apk quota-hub-0.6.0-android.apk
+          signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$signer" verify --verbose --print-certs quota-hub-0.6.0-android.apk | tee certificate.txt
+          actual=$(sed -n 's/^.*Signer.*certificate SHA-256 digest: //p' certificate.txt | tr '[:upper:]' '[:lower:]' | tr -d '\r' | sort -u)
+          expected=$(tr -d '\r\n' < docs/ANDROID_SIGNING_SHA256.txt)
+          test "$actual" = "$expected"
+          aapt=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+          "$aapt" dump badging quota-hub-0.6.0-android.apk > badging.txt
+          grep "^package: name='com.example.quota_hub' versionCode='7' versionName='0.6.0'" badging.txt
+          sha256sum quota-hub-0.6.0-android.apk > SHA256SUMS.txt
+      - name: Publish verified APK and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api repos/$GH_REPO/releases --paginate --jq '.[].tag_name' > existing-tags.txt
+          if grep -qx v0.6.0 existing-tags.txt; then echo 'Release already exists; refusing overwrite'; exit 1; fi
+          cat > release-notes.md <<'NOTES'
+          ## 0.6.0 测试版：多平台余额与费用查询
+
+          - Kimi 国内开放平台：查询人民币可用、代金券及现金余额；不支持国际站或 Coding Key。
+          - OpenAI：使用组织 Admin API Key 查询 UTC 本月至今费用，完整处理分页；剩余余额显示未知。
+          - 智谱：新增实验性账户余额查询，基于官方控制台接口，普通 API Key 是否被接受仍待真实账户验证；不是稳定公开 API，不支持 Coding 配额。
+          - OneAPI：支持站点根地址、以 /v1 结尾的 API 地址及子路径部署，保留货币模式和无限额度检查。
+          - 硅基流动：旧接口已停用，尚未确认替代余额接口，本版未接入。
+
+          验证：84 项 Flutter 测试、静态检查及 Web、Android、Windows、macOS/iOS 模拟器构建通过；服务端与合约测试通过。APK 版本 0.6.0+7、包名与固定签名已校验。
+
+          本包为固定签名 Debug 测试构建，真实平台凭据、Android 真机、覆盖更新和长时间后台刷新仍待验收。
+          与 Releases 的 0.5.0 使用相同包名和固定签名，可尝试直接覆盖更新；0.3.0/0.4.0 的旧调试签名不兼容。卸载会删除本机配置和凭据。
+
+          源码：9894a53d8aa6e90ab85b05ee2095b678f17c44d3。
+          [安装包构建记录](https://github.com/southkite2023/quota-hub/actions/runs/36529877814) · [客户端测试记录](https://github.com/southkite2023/quota-hub/actions/runs/36529877779)。固定签名产物 ID：11016217201。
+          证书 SHA-256：46b9dc0f50187f7fd127e1bd962ba90384d270c02ccaf2b2e093213ab50f907b。
+
+          下载 quota-hub-0.6.0-android.apk；SHA256SUMS.txt 用于校验下载完整性。Latest 表示最新下载入口，不表示已完成正式版验收。
+          NOTES
+          gh release create v0.6.0 quota-hub-0.6.0-android.apk SHA256SUMS.txt --target "$SOURCE_SHA" --title '0.6.0 测试版 · 多平台余额与费用查询' --notes-file release-notes.md --draft
+          gh release edit v0.6.0 --draft=false --latest
+          gh release view v0.6.0 --json url,assets,isDraft > published.json
+          jq -e '.isDraft == false and ([.assets[].name] | sort) == ["SHA256SUMS.txt", "quota-hub-0.6.0-android.apk"]' published.json
+          gh api repos/$GH_REPO/releases/latest --jq .tag_name | grep -qx v0.6.0
+          cat SHA256SUMS.txt
