@@ -8,7 +8,9 @@
 
 也可不安装 Homebrew 或 GitHub CLI：打开仓库 Settings → Secrets and variables → Actions，分别新增上述两个 Repository secrets。`ANDROID_SIGNING_STORE_BASE64` 填密钥库的 Base64 内容，`ANDROID_SIGNING_PASSWORD` 填密码文件内容。只粘贴到 GitHub Secret 输入框，不要发送到聊天或提交到仓库；配置后清空剪贴板。保存 Secrets 不会自动发布安装包，需重新运行 Android 构建验证签名。
 
-CI 运行 `scripts/sign-android-apk.sh input.apk output.apk`，用这两个环境变量签名并校验证书指纹。应用包名保持 `com.example.quota_hub`，后续递增构建号。以后所有公开测试版与正式版都使用此固定密钥；CI 的临时调试产物不能上传到 Releases。
+CI 运行 `scripts/sign-android-apk.sh input.apk output.apk`，用这两个环境变量签名并校验证书指纹。Android 对外应用包名（applicationId）自下一版本起固定为 `com.yuashie.astracct`，后续递增构建号。固定签名证书保持不变；以后所有公开测试版与正式版都继续使用此固定密钥，CI 的临时调试产物不能上传到 Releases。
+
+包名迁移说明（2026-09-30）：`0.5.0`–`0.7.1` 的公开 APK 使用旧包名 `com.example.quota_hub`。改为 `com.yuashie.astracct` 后，Android 将其视为新的应用身份，即使签名证书相同也不能覆盖安装旧包；用户需要卸载旧包并重新安装，新包后续版本再以 `com.yuashie.astracct` + 当前固定证书作为连续升级基线。
 
 0.3.0、0.4.0 原有调试私钥未保留，无法用新密钥为旧安装提供兼容更新。第一次迁移仍需用户自行保留配置和凭据后重装；从第一份固定签名 APK 开始，后续版本才能覆盖更新、保留本机数据。
 
