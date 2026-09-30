@@ -1,0 +1,238 @@
+{
+  "source": "aea507ed01ea438315d49dae432fab1e46071a00",
+  "run": 36682873452,
+  "baselineBytes": 150865308,
+  "apks": [
+    {
+      "file": "quota-hub-0.7.1-universal.apk",
+      "bytes": 48801718,
+      "sha256": "9f5139c84a894d94f893f0b5e1c657c26af9133ad970dd4ffa06cee873a617a6",
+      "abis": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86_64"
+      ],
+      "debuggable": false,
+      "version": "0.7.1",
+      "version_code": "9",
+      "zip_16kb_alignment": true,
+      "elf_16kb_alignment": true,
+      "groups": {
+        "META-INF": {
+          "compressed_bytes": 8159,
+          "uncompressed_bytes": 17561
+        },
+        "assets": {
+          "compressed_bytes": 108471,
+          "uncompressed_bytes": 144559
+        },
+        "classes.dex": {
+          "compressed_bytes": 248402,
+          "uncompressed_bytes": 541536
+        },
+        "lib/arm64-v8a": {
+          "compressed_bytes": 16532896,
+          "uncompressed_bytes": 16532896
+        },
+        "lib/armeabi-v7a": {
+          "compressed_bytes": 13761060,
+          "uncompressed_bytes": 13761060
+        },
+        "lib/x86_64": {
+          "compressed_bytes": 17967528,
+          "uncompressed_bytes": 17967528
+        },
+        "DebugProbesKt.bin": {
+          "compressed_bytes": 782,
+          "uncompressed_bytes": 1738
+        },
+        "kotlin-tooling-metadata.json": {
+          "compressed_bytes": 283,
+          "uncompressed_bytes": 625
+        },
+        "kotlin": {
+          "compressed_bytes": 12350,
+          "uncompressed_bytes": 53396
+        },
+        "AndroidManifest.xml": {
+          "compressed_bytes": 2378,
+          "uncompressed_bytes": 8560
+        },
+        "res": {
+          "compressed_bytes": 56180,
+          "uncompressed_bytes": 58329
+        },
+        "resources.arsc": {
+          "compressed_bytes": 7972,
+          "uncompressed_bytes": 7972
+        }
+      }
+    },
+    {
+      "file": "quota-hub-0.7.1-armeabi-v7a.apk",
+      "bytes": 14251680,
+      "sha256": "41f9d1c7075d227c3912fae9ad0d45e589a7fd9d6f9394f6ee1b90ba37474c16",
+      "abis": [
+        "armeabi-v7a"
+      ],
+      "debuggable": false,
+      "version": "0.7.1",
+      "version_code": "9",
+      "zip_16kb_alignment": true,
+      "elf_16kb_alignment": true,
+      "groups": {
+        "META-INF": {
+          "compressed_bytes": 7839,
+          "uncompressed_bytes": 16797
+        },
+        "assets": {
+          "compressed_bytes": 108471,
+          "uncompressed_bytes": 144559
+        },
+        "classes.dex": {
+          "compressed_bytes": 248402,
+          "uncompressed_bytes": 541536
+        },
+        "lib/armeabi-v7a": {
+          "compressed_bytes": 13761060,
+          "uncompressed_bytes": 13761060
+        },
+        "DebugProbesKt.bin": {
+          "compressed_bytes": 782,
+          "uncompressed_bytes": 1738
+        },
+        "kotlin-tooling-metadata.json": {
+          "compressed_bytes": 283,
+          "uncompressed_bytes": 625
+        },
+        "kotlin": {
+          "compressed_bytes": 12350,
+          "uncompressed_bytes": 53396
+        },
+        "AndroidManifest.xml": {
+          "compressed_bytes": 2378,
+          "uncompressed_bytes": 8560
+        },
+        "res": {
+          "compressed_bytes": 56180,
+          "uncompressed_bytes": 58329
+        },
+        "resources.arsc": {
+          "compressed_bytes": 7972,
+          "uncompressed_bytes": 7972
+        }
+      }
+    },
+    {
+      "file": "quota-hub-0.7.1-arm64-v8a.apk",
+      "bytes": 17020572,
+      "sha256": "a5ac6b1dc2192689918edf8b3e6c21b28d5ee59bbad1e556790487cd060280ce",
+      "abis": [
+        "arm64-v8a"
+      ],
+      "debuggable": false,
+      "version": "0.7.1",
+      "version_code": "9",
+      "zip_16kb_alignment": true,
+      "elf_16kb_alignment": true,
+      "groups": {
+        "META-INF": {
+          "compressed_bytes": 7830,
+          "uncompressed_bytes": 16789
+        },
+        "assets": {
+          "compressed_bytes": 108471,
+          "uncompressed_bytes": 144559
+        },
+        "classes.dex": {
+          "compressed_bytes": 248402,
+          "uncompressed_bytes": 541536
+        },
+        "lib/arm64-v8a": {
+          "compressed_bytes": 16532896,
+          "uncompressed_bytes": 16532896
+        },
+        "DebugProbesKt.bin": {
+          "compressed_bytes": 782,
+          "uncompressed_bytes": 1738
+        },
+        "kotlin-tooling-metadata.json": {
+          "compressed_bytes": 283,
+          "uncompressed_bytes": 625
+        },
+        "kotlin": {
+          "compressed_bytes": 12350,
+          "uncompressed_bytes": 53396
+        },
+        "AndroidManifest.xml": {
+          "compressed_bytes": 2378,
+          "uncompressed_bytes": 8560
+        },
+        "res": {
+          "compressed_bytes": 56180,
+          "uncompressed_bytes": 58329
+        },
+        "resources.arsc": {
+          "compressed_bytes": 7972,
+          "uncompressed_bytes": 7972
+        }
+      }
+    },
+    {
+      "file": "quota-hub-0.7.1-x86_64.apk",
+      "bytes": 18458262,
+      "sha256": "ed49a51e4ad47f00eb8ab1ed56d326a31d0c2b51ba46299f7c7c384284ea97da",
+      "abis": [
+        "x86_64"
+      ],
+      "debuggable": false,
+      "version": "0.7.1",
+      "version_code": "9",
+      "zip_16kb_alignment": true,
+      "elf_16kb_alignment": true,
+      "groups": {
+        "META-INF": {
+          "compressed_bytes": 7835,
+          "uncompressed_bytes": 16777
+        },
+        "assets": {
+          "compressed_bytes": 108471,
+          "uncompressed_bytes": 144559
+        },
+        "classes.dex": {
+          "compressed_bytes": 248402,
+          "uncompressed_bytes": 541536
+        },
+        "lib/x86_64": {
+          "compressed_bytes": 17967528,
+          "uncompressed_bytes": 17967528
+        },
+        "DebugProbesKt.bin": {
+          "compressed_bytes": 782,
+          "uncompressed_bytes": 1738
+        },
+        "kotlin-tooling-metadata.json": {
+          "compressed_bytes": 283,
+          "uncompressed_bytes": 625
+        },
+        "kotlin": {
+          "compressed_bytes": 12350,
+          "uncompressed_bytes": 53396
+        },
+        "AndroidManifest.xml": {
+          "compressed_bytes": 2378,
+          "uncompressed_bytes": 8560
+        },
+        "res": {
+          "compressed_bytes": 56180,
+          "uncompressed_bytes": 58329
+        },
+        "resources.arsc": {
+          "compressed_bytes": 7972,
+          "uncompressed_bytes": 7972
+        }
+      }
+    }
+  ]
+}
+
