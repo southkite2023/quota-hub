@@ -1,0 +1,83 @@
+name: Publish verified 0.7.0 APK once
+on:
+  pull_request:
+    types: [synchronize]
+    paths: ['.github/workflows/publish-0.7.0-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: publish-quota-hub-0.7.0
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'southkite2023/quota-hub' && github.event.pull_request.number == 10 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/balance-categories-0.7'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: southkite2023/quota-hub
+      SOURCE_SHA: 7e231e8339f4702f38461605016784969de9fef8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7e231e8339f4702f38461605016784969de9fef8
+          persist-credentials: false
+      - name: Verify source and artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run in 36680847428 36680847525; do
+            gh api "repos/$GH_REPO/actions/runs/$run" > run.json
+            jq -e --arg sha "$SOURCE_SHA" '.conclusion == "success" and .head_sha == $sha' run.json
+          done
+          gh api repos/$GH_REPO/actions/artifacts/11081587882 > artifact.json
+          jq -e --arg sha "$SOURCE_SHA" '.name == "quota-hub-android-signed" and .expired == false and .workflow_run.head_sha == $sha and .workflow_run.id == 36680847428 and .digest == "sha256:068a75d0ffcd6e7848f92df51b1acae7202f37c0986bce86199b8ae159b42316"' artifact.json
+          gh api repos/$GH_REPO/actions/artifacts/11081587882/zip > artifact.zip
+          echo '068a75d0ffcd6e7848f92df51b1acae7202f37c0986bce86199b8ae159b42316  artifact.zip' | sha256sum -c -
+          mkdir package
+          unzip -q artifact.zip -d package
+          test "$(find package -name '*.apk' | wc -l)" -eq 1
+          mv package/quota-hub-android-signed.apk quota-hub-0.7.0-android.apk
+          signer=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$signer" verify --verbose --print-certs quota-hub-0.7.0-android.apk | tee certificate.txt
+          actual=$(sed -n 's/^.*Signer.*certificate SHA-256 digest: //p' certificate.txt | tr '[:upper:]' '[:lower:]' | tr -d '\r' | sort -u)
+          expected=$(tr -d '\r\n' < docs/ANDROID_SIGNING_SHA256.txt)
+          test "$actual" = "$expected"
+          aapt=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+          "$aapt" dump badging quota-hub-0.7.0-android.apk > badging.txt
+          grep "^package: name='com.example.quota_hub' versionCode='8' versionName='0.7.0'" badging.txt
+          sha256sum quota-hub-0.7.0-android.apk > SHA256SUMS.txt
+      - name: Publish verified APK and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api repos/$GH_REPO/releases --paginate --jq '.[].tag_name' > existing-tags.txt
+          if grep -qx v0.7.0 existing-tags.txt; then echo 'Release already exists; refusing overwrite'; exit 1; fi
+          cat > release-notes.md <<'NOTES'
+          ## 0.7.0 测试版：余额账户分类与新 App 图标
+          
+          - App 图标替换为用户上传的蓝色图标，更新各平台对应资源。
+          - 沿用“余额账户”管理页和现有界面风格，在“服务商”之前新增“余额种类”：AI 订阅、云服务器、节点订阅。
+          - 服务商随类别联动；类别保存在加密配置中，编辑和重启后保留，旧账户自动归类。
+          - 管理列表显示余额类别，新增空账户提示；切换类别清空输入的凭据和接口配置。
+          
+          验证：86 项 Flutter 测试、静态检查、Web、Android、Windows、macOS/iOS 模拟器构建通过。APK 版本 0.7.0+8、包名和固定签名已校验。
+          
+          已知限制：节点订阅目前仅支持自定义 HTTPS GET + Bearer + JSON 数值余额接口，不解析订阅链接、流量或到期时间。AI 分类不会新增会员订阅或 Coding 配额接口。真实账户查询、Android 真机图标显示、覆盖更新和后台刷新仍待验收。
+          
+          本包是固定签名 Debug 测试 APK，与 0.5.0/0.6.0 使用相同包名和证书，可尝试直接覆盖更新。Latest 仅表示最新下载入口，不代表正式版验收。
+          
+          源码：7e231e8339f4702f38461605016784969de9fef8。
+          [安装包构建记录](https://github.com/southkite2023/quota-hub/actions/runs/36680847428) · [客户端测试记录](https://github.com/southkite2023/quota-hub/actions/runs/36680847525)。固定签名产物 ID：11081587882。
+          证书 SHA-256：46b9dc0f50187f7fd127e1bd962ba90384d270c02ccaf2b2e093213ab50f907b。
+          
+          下载 quota-hub-0.7.0-android.apk，使用 SHA256SUMS.txt 校验完整性。
+          NOTES
+          gh release create v0.7.0 quota-hub-0.7.0-android.apk SHA256SUMS.txt --target "$SOURCE_SHA" --title '0.7.0 测试版 · 余额账户分类与新图标' --notes-file release-notes.md --draft
+          gh release edit v0.7.0 --draft=false --latest
+          gh release view v0.7.0 --json url,assets,isDraft > published.json
+          jq -e '.isDraft == false and ([.assets[].name] | sort) == ["SHA256SUMS.txt", "quota-hub-0.7.0-android.apk"]' published.json
+          gh api repos/$GH_REPO/releases/latest --jq .tag_name | grep -qx v0.7.0
+          cat SHA256SUMS.txt
