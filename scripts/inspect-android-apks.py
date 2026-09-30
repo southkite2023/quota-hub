@@ -25,7 +25,7 @@ for variant, abis in expected_abis.items():
     path = args.directory / f'quota-hub-{args.version}-{variant}.apk'
     badging = subprocess.check_output([args.aapt, 'dump', 'badging', str(path)], text=True)
     package = re.search(r"^package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging, re.M)
-    assert package and package.groups() == ('com.example.quota_hub', args.build_number, args.version), badging
+    assert package and package.groups() == ('com.yuashie.astracct', args.build_number, args.version), badging
     assert 'application-debuggable' not in badging, 'Debuggable APK is not distributable'
     subprocess.run([args.zipalign, '-c', '-P', '16', '4', str(path)], check=True)
     with zipfile.ZipFile(path) as archive:

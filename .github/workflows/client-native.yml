@@ -20,6 +20,7 @@ jobs:
         working-directory: apps/client
         run: |
           flutter create --platforms=android --no-pub .
+          python3 ../../scripts/configure-android-application-id.py
           git restore --source=HEAD -- pubspec.lock
           flutter pub get --enforce-lockfile
           # Keep one monotonic build number across ABI variants and future universal APKs.
