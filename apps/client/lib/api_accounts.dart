@@ -14,6 +14,22 @@ import 'openai_costs.dart';
 
 enum BalanceProvider { deepseek, openrouter, oneapi, custom, aliyun, tencent, kimi, openai, zhipu }
 
+enum BalanceCategory { ai, cloud, nodes }
+
+extension CategoryLabel on BalanceCategory {
+  String get label => switch (this) {
+    BalanceCategory.ai => 'AI 订阅',
+    BalanceCategory.cloud => '云服务器',
+    BalanceCategory.nodes => '节点订阅',
+  };
+  bool supports(BalanceProvider provider) => provider == BalanceProvider.custom ||
+    switch (this) {
+      BalanceCategory.ai => !provider.isCloud,
+      BalanceCategory.cloud => provider.isCloud,
+      BalanceCategory.nodes => false,
+    };
+}
+
 extension ProviderLabel on BalanceProvider {
   bool get isCloud => this == BalanceProvider.aliyun || this == BalanceProvider.tencent;
   String get label => switch (this) {
@@ -32,9 +48,11 @@ extension ProviderLabel on BalanceProvider {
 /// Configuration stays inside the encrypted vault. Never put this object in a snapshot.
 class ApiAccount {
   const ApiAccount({required this.id, required this.provider, required this.name,
-    required this.key, this.endpoint = '', this.balancePath = 'data.balance', this.currency = 'USD', this.accessKeyId = ''});
+    required this.key, this.endpoint = '', this.balancePath = 'data.balance', this.currency = 'USD', this.accessKeyId = '', BalanceCategory? category}) : _category = category;
   final String id, name, key, endpoint, balancePath, currency, accessKeyId;
   final BalanceProvider provider;
+  final BalanceCategory? _category;
+  BalanceCategory get category => _category ?? (provider.isCloud ? BalanceCategory.cloud : BalanceCategory.ai);
   Uri get uri => switch (provider) {
     BalanceProvider.zhipu => Uri.https('open.bigmodel.cn', '/api/biz/account/query-customer-account-report'),
     BalanceProvider.kimi => Uri.https('api.moonshot.cn', '/v1/users/me/balance'),
@@ -46,6 +64,9 @@ class ApiAccount {
     BalanceProvider.oneapi || BalanceProvider.custom => Uri.parse(endpoint),
   };
   void validate() {
+    if (!category.supports(provider)) {
+      throw const DeepSeekFailure('请选择该余额种类支持的服务商。', 'provider_unavailable');
+    }
     if (!RegExp(r'^[a-z0-9_]+$').hasMatch(id) || name.trim().isEmpty || name.length > 60) {
       throw const DeepSeekFailure('请填写账户名称（最多 60 字）。', 'provider_unavailable');
     }
@@ -67,11 +88,12 @@ class ApiAccount {
       }
     }
   }
-  Map<String, dynamic> toJson() => {'id': id, 'provider': provider.name, 'name': name,
+  Map<String, dynamic> toJson() => {'id': id, 'provider': provider.name, 'category': category.name, 'name': name,
     'key': key, 'accessKeyId': accessKeyId, 'endpoint': endpoint, 'balancePath': balancePath, 'currency': currency};
   factory ApiAccount.fromJson(Map<String, dynamic> json) {
     final account = ApiAccount(id: json['id'] as String,
       provider: BalanceProvider.values.byName(json['provider'] as String),
+      category: json['category'] == null ? null : BalanceCategory.values.byName(json['category'] as String),
       name: json['name'] as String, key: json['key'] as String,
       accessKeyId: json['accessKeyId'] as String? ?? '',
       endpoint: json['endpoint'] as String? ?? '', balancePath: json['balancePath'] as String? ?? 'data.balance',
