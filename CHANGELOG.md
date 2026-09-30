@@ -4,7 +4,7 @@
 
 ## 0.7.1 — 2026-09-30
 
-类型：补丁与构建优化。状态：精简包验证通过，已放入 Releases 草稿，未公开发布，非商店正式版。客户端配置：`0.7.1+9`。
+类型：补丁与构建优化。状态：精简包验证通过，已公开发布测试版，供个人网页直接下载。客户端配置：`0.7.1+9`。
 
 ### 调整
 
@@ -18,9 +18,9 @@
 - 原 0.7.0 Debug 通用包 150.87 MB；新通用 Release 包 48.80 MB（缩小 67.7%），ARM64 17.02 MB（缩小 88.7%），ARMv7 14.25 MB，x86_64 18.46 MB；精确字节数和哈希见 `docs/reports/0.7.1-apk-size.json`。
 - 云端 86 项 Flutter 测试、静态检查和 Web、Android、Windows、macOS/iOS 模拟器构建通过，源码 `aea507ed01ea438315d49dae432fab1e46071a00`，测试运行 `36682873514`、原生运行 `36682873452`。四种 APK 的固定签名、版本 0.7.1+9、非调试标记、ABI、AOT 及 ZIP/64 位 ELF 16 KB 对齐检查通过。
 - Android 15 x86_64 模拟器全新安装启动、从 0.7.0 无账户状态覆盖安装启动均通过，无检测到的致命崩溃；并非真实凭据迁移、小组件、厂商真机或 16 KB 设备运行验收。检查运行 `36685735220`，固定签名产物 `11081779969`。
-- [Releases 验证草稿](https://github.com/southkite2023/quota-hub/releases/tag/untagged-a6832dd4cbd18d529ba1)已上传四种 APK、SHA256SUMS.txt、apk-report.json，未设为公开或 Latest。Dart/R8 符号已在本机备份；一次性草稿工作流完成后移除。
+- [0.7.1 精简测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.7.1)已上传四种 APK、SHA256SUMS.txt、apk-report.json，于本轮按用户选择公开发布并设为 Latest，发布运行 `36686644580` 再次复核测试来源、版本、签名及附件哈希。Dart/R8 符号已在本机备份；一次性草稿工作流完成后移除。
 - 修正了 Flutter 生成平台工程重写依赖锁的问题；README/SECURITY 更新为实际测试阶段说明。
-- 这是工程 Release 构建验证，不代表通过国内商店审核。个人主体资质、备案、版权材料、隐私同意与政策入口、正式命名、真机验收仍需完成，详见 `docs/FIRST_PUBLIC_RELEASE.md`。
+- 分发方向改为个人网页下载，不提交国内应用商店；仍标记测试版。网页入口指向固定版本 APK，保留隐私说明、版本记录、签名备份和真机验证安排，详见 `docs/FIRST_PUBLIC_RELEASE.md`。
 
 ## 0.7.0 — 2026-09-30
 

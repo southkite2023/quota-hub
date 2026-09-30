@@ -2,7 +2,7 @@
 
 Android 账户余额与费用查看工具：按账户独立查询，不把不同币种相加；支持前台刷新、可选后台刷新和桌面小组件。
 
-当前公开下载为 [0.7.0 测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.7.0)。[0.7.1 精简验证包草稿](https://github.com/southkite2023/quota-hub/releases/tag/untagged-a6832dd4cbd18d529ba1)已完成构建与模拟器基本安装启动检查，尚未公开发布或通过商店/厂商真机完整验收。草稿仅有仓库权限的用户可见。
+当前公开下载为 [0.7.1 精简测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.7.1)，由个人网页提供入口、GitHub Releases 托管安装包；不向国内应用商店提交。ARM64 包 17.02 MB，通用包 48.80 MB，已通过构建和模拟器基本安装启动检查，真实账户与厂商真机完整验收仍待完成。
 
 ## 已有功能
 
@@ -22,7 +22,7 @@ Android 是当前重点验证平台。Web、Windows、macOS、iOS 可构建，�
 
 - [客户端配置与开发](apps/client/README.md)
 - [Android 发布与下载](docs/RELEASING.md)
-- [首次国内商店发布准备](docs/FIRST_PUBLIC_RELEASE.md)
+- [个人网页下载与发布说明](docs/FIRST_PUBLIC_RELEASE.md)
 - [版本规则](docs/VERSIONING.md) 与 [更新日志](CHANGELOG.md)
 - [架构](docs/ARCHITECTURE.md)、[数据协议](packages/contracts/README.md) 与 [可选服务端](apps/server/README.md)
 
