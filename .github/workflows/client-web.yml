@@ -19,6 +19,7 @@ jobs:
         run: |
           flutter config --enable-web
           flutter create --platforms=web --no-pub .
+          git restore --source=HEAD -- pubspec.lock
           flutter pub get --enforce-lockfile
           flutter analyze lib test
           flutter test
