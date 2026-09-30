@@ -1,0 +1,132 @@
+name: Verify and stage slim APKs once
+on:
+  pull_request:
+    types: [synchronize]
+    paths: ['.github/workflows/stage-slim-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: quota-hub-stage-0.7.1
+  cancel-in-progress: false
+jobs:
+  stage:
+    if: github.repository == 'southkite2023/quota-hub' && github.event.pull_request.number == 11 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'build/android-release-size'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: southkite2023/quota-hub
+      SOURCE_SHA: aea507ed01ea438315d49dae432fab1e46071a00
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: aea507ed01ea438315d49dae432fab1e46071a00
+          persist-credentials: false
+      - name: Verify and download exact build
+        shell: bash
+        run: |
+          set -euo pipefail
+          for run in 36682873452 36682873514; do
+            gh api "repos/$GH_REPO/actions/runs/$run" > run.json
+            jq -e --arg sha "$SOURCE_SHA" '.conclusion == "success" and .head_sha == $sha' run.json
+          done
+          gh api repos/$GH_REPO/actions/artifacts/11081779969 > artifact.json
+          jq -e --arg sha "$SOURCE_SHA" '.name == "quota-hub-android-signed" and .expired == false and .workflow_run.head_sha == $sha and .digest == "sha256:e5c0cc37356fe5ee17f69b298cfcd6c5b622b581ea418260c1d10963c134ab34"' artifact.json
+          gh api repos/$GH_REPO/actions/artifacts/11081779969/zip > artifact.zip
+          echo 'e5c0cc37356fe5ee17f69b298cfcd6c5b622b581ea418260c1d10963c134ab34  artifact.zip' | sha256sum -c -
+          mkdir android-release
+          unzip -q artifact.zip -d android-release
+          (cd android-release && sha256sum -c SHA256SUMS.txt)
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          for apk in android-release/*.apk; do
+            "$tools/apksigner" verify --verbose --print-certs "$apk" > certificate.txt
+            actual=$(sed -n 's/^.*Signer.*certificate SHA-256 digest: //p' certificate.txt | tr '[:upper:]' '[:lower:]' | tr -d '\r' | sort -u)
+            expected=$(tr -d '\r\n' < docs/ANDROID_SIGNING_SHA256.txt)
+            test "$actual" = "$expected"
+          done
+          python3 scripts/inspect-android-apks.py --directory android-release --aapt "$tools/aapt" --zipalign "$tools/zipalign" --version 0.7.1 --build-number 9
+          mkdir previous
+          gh release download v0.7.0 --pattern quota-hub-0.7.0-android.apk --dir previous
+          echo 'acd7b388788139c351a9cba641d0391a1a3d929efadf096b93ded26e00b2a60f  previous/quota-hub-0.7.0-android.apk' | sha256sum -c -
+      - name: Prepare install and launch check
+        run: |
+          cat > /tmp/quota-smoke.sh <<'SCRIPT'
+          set -euo pipefail
+          adb install previous/quota-hub-0.7.0-android.apk
+          adb shell am start -W -n com.example.quota_hub/.MainActivity
+          sleep 10
+          adb shell am force-stop com.example.quota_hub
+          adb install -r android-release/quota-hub-0.7.1-x86_64.apk
+          adb logcat -c
+          adb shell am start -W -n com.example.quota_hub/.MainActivity
+          sleep 15
+          adb shell pidof com.example.quota_hub
+          adb shell dumpsys package com.example.quota_hub | grep 'versionCode=9'
+          adb shell dumpsys package com.example.quota_hub | grep 'versionName=0.7.1'
+          adb logcat -b crash -d > /tmp/quota-crash.log
+          if grep -E 'FATAL EXCEPTION|Fatal signal' /tmp/quota-crash.log; then exit 1; fi
+          adb exec-out screencap -p > /tmp/quota-release-screen.png
+          adb shell am force-stop com.example.quota_hub
+          adb uninstall com.example.quota_hub
+          adb install android-release/quota-hub-0.7.1-x86_64.apk
+          adb logcat -c
+          adb shell am start -W -n com.example.quota_hub/.MainActivity
+          sleep 15
+          adb shell pidof com.example.quota_hub
+          adb logcat -b crash -d > /tmp/quota-crash-clean.log
+          if grep -E 'FATAL EXCEPTION|Fatal signal' /tmp/quota-crash-clean.log; then exit 1; fi
+          SCRIPT
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Check Android 15 release startup and upgrade
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: bash /tmp/quota-smoke.sh
+      - name: Save launch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quota-hub-release-smoke
+          path: |
+            /tmp/quota-release-screen.png
+            /tmp/quota-crash*.log
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Stage draft for testing, without publishing
+        run: |
+          set -euo pipefail
+          gh api repos/$GH_REPO/releases --paginate --jq '.[].tag_name' > existing-tags.txt
+          if grep -qx v0.7.1 existing-tags.txt; then echo 'Refusing to overwrite an existing release'; exit 1; fi
+          cat > notes.md <<'NOTES'
+          ## 0.7.1 精简验证包
+
+          从 Debug 通用包改为 Release AOT，分离调试信息，提供通用与按架构分包。固定签名与 0.7.0 一致，包名不变，所有变体版本均为 0.7.1+9。
+
+          此草稿供首次国内商店发布前验证，尚未公开发布或通过商店审核。首发目标：个人账号，小米/vivo/OPPO。
+
+          验证：Flutter 测试、静态检查及各平台构建；四种 APK 的签名、版本、非调试标记、AOT、ABI、ZIP/64 位 ELF 的 16 KB 对齐。Android 15 x86_64 模拟器完成从 0.7.0 无账户状态覆盖升级和全新安装启动检查。未验证真实账户凭据迁移、ARM 真机、小组件与长时间后台刷新；二进制对齐检查不等于完成 16 KB 设备运行验收。
+
+          当前仍需补齐正式名称/包名决策、个人主体资质/备案和版权材料、隐私政策及首次同意入口、备案展示、真实功能说明和厂商真机验收。详见源码 docs/FIRST_PUBLIC_RELEASE.md。
+
+          选择：64 位 ARM 手机使用 arm64-v8a 包；仅 32 位设备使用 armeabi-v7a；不确定架构使用 universal；x86_64 供对应设备/模拟器。商店上传按其架构要求选择。
+          NOTES
+          python3 - <<'PY' >> notes.md
+          import json
+          rows = json.load(open('android-release/apk-report.json'))
+          print('\n| 安装包 | 大小（MB） | 相比 0.7.0 缩小 |\n|---|---:|---:|')
+          for r in rows:
+              print(f"| {r['file']} | {r['bytes']/1e6:.2f} | {100*(1-r['bytes']/150865308):.1f}% |")
+          PY
+          printf '\n源码：%s。构建运行：36682873452；测试：36682873514。\n' "$SOURCE_SHA" >> notes.md
+          gh release create v0.7.1 android-release/*.apk android-release/SHA256SUMS.txt android-release/apk-report.json --target "$SOURCE_SHA" --title '0.7.1 精简验证包 · 商店发布准备' --notes-file notes.md --draft
+          gh release view v0.7.1 --json url,isDraft,assets
