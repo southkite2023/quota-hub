@@ -15,6 +15,55 @@ class MemoryVault implements AccountsStore {
   Future<void> write(String value) async { data = value; }
 }
 void main() {
+  test('category survives serialization and legacy accounts infer defaults', () {
+    const node = ApiAccount(id: 'node', provider: BalanceProvider.custom,
+      category: BalanceCategory.nodes, name: '节点', key: 'fake', endpoint: 'https://example.com/balance');
+    expect(ApiAccount.fromJson(node.toJson()).category, BalanceCategory.nodes);
+    final legacy = node.toJson()..remove('category');
+    expect(ApiAccount.fromJson(legacy).category, BalanceCategory.ai);
+    legacy['provider'] = 'aliyun'; legacy['accessKeyId'] = 'fakeId';
+    expect(ApiAccount.fromJson(legacy).category, BalanceCategory.cloud);
+  });
+
+  testWidgets('category filters providers and node account persists after reopening', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final vault = MemoryVault();
+    final manager = ApiAccounts(store: vault, api: BalanceApi(clientFactory: () => MockClient((_) async => http.Response('{"data":{"balance":12}}', 200))));
+    await manager.initialize();
+    await tester.pumpWidget(MaterialApp(home: AccountSettings(connection: manager)));
+    await tester.ensureVisible(find.text('添加余额账户'));
+    await tester.tap(find.text('添加余额账户')); await tester.pumpAndSettle();
+    expect(tester.getTopLeft(find.byType(DropdownButtonFormField<BalanceCategory>)).dy,
+      lessThan(tester.getTopLeft(find.byType(DropdownButtonFormField<String>)).dy));
+    await tester.enterText(find.byType(TextField).last, 'discarded-secret');
+    await tester.tap(find.byType(DropdownButtonFormField<BalanceCategory>)); await tester.pumpAndSettle();
+    await tester.tap(find.text('云服务器').last); await tester.pumpAndSettle();
+    final cloudChoices = tester.widget<DropdownButtonFormField<String>>(find.byType(DropdownButtonFormField<String>));
+    expect(cloudChoices.initialValue, 'aliyun');
+    expect(tester.widget<TextField>(find.byType(TextField).last).controller!.text, '');
+    await tester.tap(find.byType(DropdownButtonFormField<String>)); await tester.pumpAndSettle();
+    expect(find.text('DeepSeek'), findsNothing);
+    expect(find.text('腾讯云 · 云账户余额'), findsOneWidget);
+    await tester.tap(find.text('腾讯云 · 云账户余额')); await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<BalanceCategory>)); await tester.pumpAndSettle();
+    await tester.tap(find.text('节点订阅').last); await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '节点账户');
+    await tester.enterText(fields.at(1), 'https://example.com/balance');
+    await tester.enterText(fields.last, 'node-secret');
+    await tester.ensureVisible(find.text('验证并保存'));
+    await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
+    await tester.tap(find.text('验证连接')); await tester.pumpAndSettle();
+    expect(manager.entries.single.category, BalanceCategory.nodes);
+    expect(find.text('节点订阅 · 自定义余额接口'), findsOneWidget);
+    final reopened = ApiAccounts(store: vault); await reopened.initialize();
+    expect(reopened.entries.single.category, BalanceCategory.nodes);
+    await tester.tap(find.text('编辑')); await tester.pumpAndSettle();
+    expect(tester.widget<DropdownButtonFormField<BalanceCategory>>(find.byType(DropdownButtonFormField<BalanceCategory>)).initialValue, BalanceCategory.nodes);
+    manager.dispose(); reopened.dispose();
+  });
+
   testWidgets('cloud editor hides saved secret and rejects reuse after ID changes', (tester) async {
     var requests = 0;
     final vault = MemoryVault();

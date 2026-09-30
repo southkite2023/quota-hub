@@ -36,10 +36,11 @@ class AccountSettings extends StatelessWidget {
         TextButton(onPressed: connection.busy ? null : () => connection.selectAllWidgets(true), child: const Text('全部勾选')),
         TextButton(onPressed: connection.busy ? null : () => connection.selectAllWidgets(false), child: const Text('全部取消')),
       ]),
+      if (connection.entries.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('尚未添加余额账户。选择余额种类和服务商，验证后即可查看余额。'))),
       for (final account in connection.entries) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(
         crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(account.name, style: Theme.of(context).textTheme.titleMedium),
-          Text(account.provider.label),
+          Text('${account.category.label} · ${account.provider.label}'),
           if (connection.errors[account.id] != null) Text(connection.errors[account.id]!),
           CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('显示在桌面小组件'),
             value: connection.widgetAccountIds.contains(account.id),
@@ -80,6 +81,7 @@ class _AccountEditorState extends State<AccountEditor> {
   late final _path = TextEditingController(text: widget.account?.balancePath ?? 'data.balance');
   late final _currency = TextEditingController(text: widget.account?.currency ?? 'USD');
   late String _choice = widget.account?.provider.name ?? 'deepseek';
+  late BalanceCategory _category = widget.account?.category ?? BalanceCategory.ai;
   bool _obscure = true;
   String? _error;
   @override
@@ -95,7 +97,7 @@ class _AccountEditorState extends State<AccountEditor> {
     final canReuse = old != null && old.provider == provider && old.endpoint == endpoint &&
       (!provider.isCloud || old.accessKeyId == _accessKeyId.text.trim());
     final candidate = ApiAccount(id: old?.id ?? 'account_${DateTime.now().microsecondsSinceEpoch}',
-      provider: provider, name: _name.text.trim().isEmpty ? provider.label : _name.text.trim(),
+      category: _category, provider: provider, name: _name.text.trim().isEmpty ? provider.label : _name.text.trim(),
       key: _key.text.trim().isEmpty && canReuse ? old.key : _key.text.trim(), endpoint: endpoint,
       accessKeyId: provider.isCloud ? _accessKeyId.text.trim() : '',
       balancePath: _path.text.trim(), currency: _currency.text.trim().toUpperCase());
@@ -127,9 +129,23 @@ class _AccountEditorState extends State<AccountEditor> {
     return PopScope(canPop: !widget.connection.busy, child: Scaffold(
       appBar: AppBar(title: Text(widget.account == null ? '添加余额账户' : '编辑余额账户')),
       body: SafeArea(child: ListView(padding: const EdgeInsets.all(24), children: [
-        DropdownButtonFormField<String>(initialValue: _choice, isExpanded: true,
+        DropdownButtonFormField<BalanceCategory>(initialValue: _category, isExpanded: true,
+          decoration: const InputDecoration(labelText: '余额种类', border: OutlineInputBorder()),
+          items: [for (final category in BalanceCategory.values) DropdownMenuItem(value: category, child: Text(category.label))],
+          onChanged: enabled ? (value) => setState(() {
+            _category = value!;
+            _choice = _catalog.firstWhere((item) => item.provider != null && _category.supports(item.provider!)).id;
+            _key.clear(); _accessKeyId.clear(); _endpoint.clear();
+            _path.text = 'data.balance'; _currency.text = 'USD'; _error = null;
+          }) : null),
+        const SizedBox(height: 16),
+        if (_category == BalanceCategory.nodes) ...[
+          const Text('节点订阅目前仅支持服务商提供的自定义余额接口，不支持直接解析订阅链接、流量或到期时间。'),
+          const SizedBox(height: 16),
+        ],
+        DropdownButtonFormField<String>(key: ValueKey(_category), initialValue: _choice, isExpanded: true,
           decoration: const InputDecoration(labelText: '服务商', border: OutlineInputBorder()),
-          items: [for (final item in _catalog) DropdownMenuItem(value: item.id, child: Text(item.label))],
+          items: [for (final item in _catalog.where((item) => item.provider == null ? _category == BalanceCategory.ai : _category.supports(item.provider!))) DropdownMenuItem(value: item.id, child: Text(item.label))],
           onChanged: enabled ? (value) => setState(() { _choice = value!; _key.clear(); _accessKeyId.clear(); _error = null; }) : null),
         const SizedBox(height: 16), Text(choice.note), const SizedBox(height: 20),
         if (supported) ...[
