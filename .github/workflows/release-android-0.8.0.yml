@@ -1,0 +1,92 @@
+name: Release Android 0.8.0
+
+on:
+  push:
+    branches:
+      - build/android-release-size
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.head_commit.message == 'release: 0.8.0 package identity migration'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      ANDROID_SIGNING_STORE_BASE64: ${{ secrets.ANDROID_SIGNING_STORE_BASE64 }}
+      ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flutter SDK
+        run: |
+          git clone --depth 1 --branch 3.47.5 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Test client
+        working-directory: apps/client
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter analyze
+          flutter test
+
+      - name: Build optimized APKs
+        working-directory: apps/client
+        run: |
+          flutter create --platforms=android --no-pub .
+          python3 ../../scripts/configure-android-application-id.py
+          git restore --source=HEAD -- pubspec.lock
+          flutter pub get --enforce-lockfile
+          echo 'force-version-code-ignoring-abi=true' >> android/gradle.properties
+          flutter build apk --release --split-debug-info=build/symbols
+          mkdir -p ../../android-build
+          cp build/app/outputs/flutter-apk/app-release.apk ../../android-build/universal.apk
+          flutter build apk --release --split-per-abi --split-debug-info=build/symbols
+          for abi in armeabi-v7a arm64-v8a x86_64; do
+            cp "build/app/outputs/flutter-apk/app-$abi-release.apk" "../../android-build/$abi.apk"
+          done
+
+      - name: Sign and validate
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_SIGNING_STORE_BASE64"
+          test -n "$ANDROID_SIGNING_PASSWORD"
+          version=$(sed -n 's/^version: \([^+]*\)+.*/\1/p' apps/client/pubspec.yaml)
+          build=$(sed -n 's/^version: .*+//p' apps/client/pubspec.yaml)
+          test "$version" = "0.8.0"
+          test "$build" = "10"
+          mkdir -p android-release
+          for variant in universal armeabi-v7a arm64-v8a x86_64; do
+            bash scripts/sign-android-apk.sh "android-build/$variant.apk" "android-release/astracct-$version-$variant.apk"
+          done
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          # Inspector currently expects quota-hub filenames; provide temporary aliases for validation.
+          for variant in universal armeabi-v7a arm64-v8a x86_64; do
+            cp "android-release/astracct-$version-$variant.apk" "android-release/quota-hub-$version-$variant.apk"
+          done
+          python3 scripts/inspect-android-apks.py --directory android-release --aapt "$tools/aapt" --zipalign "$tools/zipalign" --version "$version" --build-number "$build"
+          rm android-release/quota-hub-$version-*.apk
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root=Path("android-release")
+          apks=sorted(root.glob("astracct-0.8.0-*.apk"))
+          root.joinpath("SHA256SUMS.txt").write_text("".join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n" for p in apks))
+          PY
+
+      - name: Create GitHub Release
+        run: |
+          cat > release-notes.md <<'EOF'
+          ## 0.8.0 · Astracct 包名迁移测试版
+
+          Android 应用身份正式迁移到 `com.yuashie.astracct`，继续使用既有固定签名证书。
+
+          **重要：0.5.0–0.7.1 使用 `com.example.quota_hub`，因此不能覆盖安装到 0.8.0。首次迁移需要卸载旧版并重新安装，卸载会清除旧应用本机配置。**
+
+          从 0.8.0 起，后续 Android 版本以 `com.yuashie.astracct` + 当前固定签名作为升级基线。
+
+          本次发布包含 universal、ARM64、ARMv7、x86_64 四种 Release AOT APK，以及 SHA-256 校验文件和 APK 检查报告。流水线已执行 Flutter 静态检查、测试、固定签名与包名/版本/ABI/16 KB 对齐验证。
+          EOF
+          gh release create v0.8.0             android-release/astracct-0.8.0-universal.apk             android-release/astracct-0.8.0-arm64-v8a.apk             android-release/astracct-0.8.0-armeabi-v7a.apk             android-release/astracct-0.8.0-x86_64.apk             android-release/SHA256SUMS.txt             android-release/apk-report.json             --target "$GITHUB_SHA"             --title "0.8.0 · Astracct 包名迁移测试版"             --notes-file release-notes.md             --latest

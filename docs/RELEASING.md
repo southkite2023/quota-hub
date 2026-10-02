@@ -1,9 +1,9 @@
 # Android 安装包分发
 
-用户指定 GitHub Releases 为安装包下载入口。当前版本：[0.7.1 精简测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.7.1)。
+用户指定 GitHub Releases 为安装包下载入口。当前版本：0.8.0 Android 应用身份迁移测试版。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
-- [0.7.1 ARM64 APK 直接下载](https://github.com/southkite2023/quota-hub/releases/download/v0.7.1/quota-hub-0.7.1-arm64-v8a.apk)
+- 0.8.0 发布后由 GitHub Releases 提供 ARM64、ARMv7、x86_64 与通用 APK。
 
 ## 每次发布
 
@@ -35,3 +35,10 @@
 原草稿按用户选择由运行 `36686644580` 复核现有附件后公开，无重新构建或更换附件。ARM64 17.02 MB，通用 48.80 MB。仍为测试阶段，真实凭据迁移、厂商真机、小组件和长期后台行为待验收。
 
 网页按钮使用固定版本直链，避免版本说明和安装包不一致；每次更新同时调整链接、大小和版本说明。详见 [个人网页分发说明](FIRST_PUBLIC_RELEASE.md)。
+
+
+## 当前包：0.8.0 应用身份迁移测试版
+
+Android applicationId 正式改为 `com.yuashie.astracct`，固定签名证书保持不变。由于包名变化，0.5.0–0.7.1 的 `com.example.quota_hub` 无法覆盖升级到 0.8.0；首次迁移需要卸载旧版并重新安装，之后以新包名和现有固定签名作为连续升级基线。
+
+发布流水线仅在测试、静态检查、Release AOT 构建、固定签名和 APK 元数据校验全部通过后创建 GitHub Release，并上传四种 APK、SHA256SUMS.txt 与 apk-report.json。
