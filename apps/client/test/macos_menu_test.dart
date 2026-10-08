@@ -70,6 +70,19 @@ void main() {
     expect(host.updates.last['tooltip'].toString(), contains('本月费用'));
     menu.dispose();
   });
+  test('OpenAI selection survives its unknown placeholder becoming a monthly cost', () async {
+    final unknown = fixture(state: MetricState.unknown, value: null);
+    final openai = Account(id: unknown.id, provider: 'openai', label: unknown.label,
+      lastSuccessAt: null, metrics: unknown.metrics);
+    final host = MenuHost(); final menu = MacMenuController(host: host);
+    await menu.initialize((_, _) async {});
+    menu.update([openai], hidden: false); await menu.select(menu.choices.single.id);
+    menu.update([openai], hidden: false); await flush();
+    expect(host.updates.last['title'], '费用 未知');
+    menu.update([fixture(key: 'month_spent', value: '4')], hidden: false); await flush();
+    expect(host.updates.last['title'], '费用 4.00 USD');
+    menu.dispose();
+  });
   test('native updates are serialized and recover on the next account refresh', () async {
     final host = MenuHost()..block = Completer<void>(); final menu = MacMenuController(host: host);
     await menu.initialize((_, _) async {});

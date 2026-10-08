@@ -12,8 +12,10 @@ class MenuBalance {
   const MenuBalance(this.account, this.metric);
   final Account account;
   final Metric metric;
-  String get id => jsonEncode([account.id, metric.key]);
-  String get kind => switch (metric.key) {
+  // OpenAI's pre-query placeholder uses available; keep the eventual cost selection stable.
+  String get metricKey => account.provider == 'openai' ? 'month_spent' : metric.key;
+  String get id => jsonEncode([account.id, metricKey]);
+  String get kind => switch (metricKey) {
     'month_spent' => '本月费用（UTC）', 'available_credit' => '可用额度',
     'cash_balance' || 'cash' => '现金余额', 'bonus' => '赠送余额',
     'voucher' => '代金券余额', 'frozen' => '冻结余额',
@@ -25,7 +27,7 @@ class MenuBalance {
     final prefix = switch (metric.state) {
       MetricState.stale => '过期 ', MetricState.error => '失败 ', _ => '',
     };
-    return '${metric.key == 'month_spent' ? '费用 ' : ''}$prefix$value';
+    return '${metricKey == 'month_spent' ? '费用 ' : ''}$prefix$value';
   }
 }
 
