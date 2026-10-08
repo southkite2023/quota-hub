@@ -1,0 +1,168 @@
+package com.example.quota_hub
+
+import android.content.Intent
+import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
+import org.json.JSONObject
+import org.json.JSONArray
+
+class MainActivity : FlutterActivity() {
+    private var notificationResult: MethodChannel.Result? = null
+    private var widgetChannel: MethodChannel? = null
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/refresh").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "acquire" -> result.success(RefreshRuntime.acquire("ui"))
+                "release" -> {
+                    RefreshRuntime.release("ui")
+                    getSharedPreferences("refresh_status", MODE_PRIVATE).edit().putLong("lastAttempt", System.currentTimeMillis()).apply()
+                    result.success(null)
+                }
+                "requestNotifications" -> {
+                    if (RefreshRuntime.notificationAllowed(this)) result.success(true)
+                    else if (notificationResult != null) result.success(false)
+                    else { notificationResult = result; requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 430) }
+                }
+                "start" -> {
+                    getSharedPreferences("refresh_status", MODE_PRIVATE).edit().putBoolean("stopped", false).apply()
+                    RefreshRuntime.start(this); result.success(null)
+                }
+                "stop" -> {
+                    stopService(Intent(this, BalanceRefreshService::class.java))
+                    getSharedPreferences("refresh_status", MODE_PRIVATE).edit().putString("message", "后台刷新已关闭").apply()
+                    result.success(null)
+                }
+                "status" -> {
+                    val message = getSharedPreferences("refresh_status", MODE_PRIVATE).getString("message", "后台刷新未开启")
+                    result.success(if (!RefreshRuntime.allowed(this)) "后台刷新未开启（需启用自动刷新并添加账户）"
+                        else if (!RefreshRuntime.running && message == "后台刷新已开启") "后台服务已停止，请重新开启" else message)
+                }
+                else -> result.notImplemented()
+            }
+        }
+        val keyStore = DeepSeekKeyStore(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/deepseek")
+            .setMethodCallHandler { call, result ->
+                try {
+                    when (call.method) {
+                        "readKey" -> result.success(keyStore.read())
+                        "saveKey", "removeKey" -> {
+                            if (call.method == "saveKey") keyStore.save(call.arguments as String)
+                            else keyStore.remove()
+                            getSharedPreferences("quota_widget", MODE_PRIVATE).edit().remove("snapshot").remove("widget_snapshot").commit()
+                            QuotaWidgetProvider.refreshAll(this)
+                            result.success(null)
+                        }
+                        else -> result.notImplemented()
+                    }
+                } catch (_: Exception) {
+                    result.error("KEY_STORAGE_FAILED", "Unable to access device credential storage", null)
+                }
+            }
+        val accountsStore = DeepSeekKeyStore(this, "accounts")
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/accounts")
+            .setMethodCallHandler { call, result ->
+                try {
+                    when (call.method) {
+                        "readAccounts" -> {
+                            val saved = accountsStore.read()
+                            if (saved != null) result.success(saved)
+                            else {
+                                val legacyKey = keyStore.read()
+                                val migrated = if (legacyKey == null) null else JSONObject()
+                                    .put("version", 1).put("widgetAccountId", "legacy_deepseek")
+                                    .put("accounts", JSONArray().put(JSONObject()
+                                        .put("id", "legacy_deepseek").put("provider", "deepseek")
+                                        .put("name", "我的 DeepSeek").put("key", legacyKey))).toString()
+                                result.success(migrated)
+                            }
+                        }
+                        "saveAccounts" -> {
+                            val value = call.arguments as String
+                            val json = JSONObject(value)
+                            require(json.getInt("version") == 1 && json.getJSONArray("accounts").length() <= 20)
+                            accountsStore.save(value)
+                            if (RefreshRuntime.visible) RefreshRuntime.start(this)
+                            // New vault (including an empty list) takes precedence over the legacy file.
+                            runCatching { keyStore.remove() }
+                            runCatching {
+                                getSharedPreferences("quota_widget", MODE_PRIVATE).edit().remove("snapshot").remove("widget_snapshot").commit()
+                                QuotaWidgetProvider.refreshAll(this)
+                            }
+                            result.success(null)
+                        }
+                        else -> result.notImplemented()
+                    }
+                } catch (_: Exception) {
+                    result.error("ACCOUNTS_STORAGE_FAILED", "Unable to access account storage", null)
+                }
+            }
+        widgetChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/widget")
+        widgetChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "saveSnapshot" -> {
+                    val snapshot = call.argument<String>("snapshot")
+                    val widgetSnapshot = call.argument<String>("widgetSnapshot") ?: snapshot
+                    if (snapshot == null || snapshot.length > 65536 || !validSnapshot(snapshot) || widgetSnapshot == null || widgetSnapshot.length > 65536 || !validSnapshot(widgetSnapshot)) {
+                        result.error("INVALID_SNAPSHOT", "Expected a version 1 demo snapshot", null)
+                    } else {
+                        getSharedPreferences("quota_widget", MODE_PRIVATE).edit()
+                            .putString("snapshot", snapshot)
+                            .putString("widget_snapshot", widgetSnapshot)
+                            .putBoolean("hideMoney", call.argument<Boolean>("hideMoney") ?: false)
+                            .apply()
+                        QuotaWidgetProvider.refreshAll(this)
+                        result.success(null)
+                    }
+                }
+                "readSnapshot" -> result.success(getSharedPreferences("quota_widget", MODE_PRIVATE).getString("snapshot", null))
+                "getWidgetAccount" -> result.success(intent?.getStringExtra("accountId"))
+                "getHideMoney" -> result.success(
+                    getSharedPreferences("quota_widget", MODE_PRIVATE).getBoolean("hideMoney", false)
+                )
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume(); RefreshRuntime.visible = true; RefreshRuntime.start(this)
+    }
+    override fun onPause() {
+        RefreshRuntime.visible = false; super.onPause()
+    }
+    override fun onDestroy() {
+        notificationResult?.success(false); notificationResult = null
+        RefreshRuntime.release("ui")
+        super.onDestroy()
+    }
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 430) {
+            notificationResult?.success(RefreshRuntime.notificationAllowed(this)); notificationResult = null
+        }
+    }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.getStringExtra("accountId")?.let { widgetChannel?.invokeMethod("openAccount", it) }
+    }
+
+    private fun validSnapshot(source: String): Boolean = try {
+        val json = JSONObject(source)
+        val accounts = json.getJSONArray("accounts")
+        json.getInt("schemaVersion") == 1 && accounts.length() <= 40 &&
+            json.keys().asSequence().all { it in setOf("schemaVersion", "generatedAt", "accounts") } &&
+            (0 until accounts.length()).all { index ->
+                val account = accounts.getJSONObject(index)
+                account.has("id") && account.has("provider") && account.has("metrics") &&
+                    account.getJSONArray("metrics").length() > 0 &&
+                    account.keys().asSequence().all { it in setOf("id", "provider", "label", "lastSuccessAt", "metrics") }
+            }
+    } catch (_: Exception) {
+        false
+    }
+}

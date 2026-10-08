@@ -1,0 +1,119 @@
+name: Flutter native build checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flutter SDK
+        run: |
+          git clone --depth 1 --branch 3.47.5 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Build optimized Android APKs
+        working-directory: apps/client
+        run: |
+          flutter create --platforms=android --no-pub .
+          python3 ../../scripts/configure-android-application-id.py
+          git restore --source=HEAD -- pubspec.lock
+          flutter pub get --enforce-lockfile
+          # Keep one monotonic build number across ABI variants and future universal APKs.
+          echo 'force-version-code-ignoring-abi=true' >> android/gradle.properties
+          flutter build apk --release --split-debug-info=build/symbols
+          mkdir -p ../../android-build
+          cp build/app/outputs/flutter-apk/app-release.apk ../../android-build/universal.apk
+          flutter build apk --release --split-per-abi --split-debug-info=build/symbols
+          for abi in armeabi-v7a arm64-v8a x86_64; do
+            cp "build/app/outputs/flutter-apk/app-$abi-release.apk" "../../android-build/$abi.apk"
+          done
+      - name: Sign and validate release candidates
+        id: sign
+        env:
+          ANDROID_SIGNING_STORE_BASE64: ${{ secrets.ANDROID_SIGNING_STORE_BASE64 }}
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$ANDROID_SIGNING_STORE_BASE64" ] || [ -z "$ANDROID_SIGNING_PASSWORD" ]; then
+            echo 'Fixed signing not configured; no distributable APK will be uploaded.'
+            exit 0
+          fi
+          version=$(sed -n 's/^version: \([^+]*\)+.*/\1/p' apps/client/pubspec.yaml)
+          build=$(sed -n 's/^version: .*+//p' apps/client/pubspec.yaml)
+          mkdir -p android-release
+          for variant in universal armeabi-v7a arm64-v8a x86_64; do
+            bash scripts/sign-android-apk.sh "android-build/$variant.apk" "android-release/quota-hub-$version-$variant.apk"
+          done
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          python3 scripts/inspect-android-apks.py --directory android-release --aapt "$tools/aapt" --zipalign "$tools/zipalign" --version "$version" --build-number "$build"
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+      - name: Save verified fixed-signature release APKs
+        if: steps.sign.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: quota-hub-android-signed
+          path: android-release/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Save matching release symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: quota-hub-android-symbols
+          path: |
+            apps/client/build/symbols/
+            apps/client/build/app/outputs/mapping/release/
+          if-no-files-found: error
+          retention-days: 90
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flutter SDK
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch 3.47.5 https://github.com/flutter/flutter.git "$env:RUNNER_TEMP\flutter"
+          Add-Content -Path $env:GITHUB_PATH -Value "$env:RUNNER_TEMP\flutter\bin"
+      - name: Build Windows demo app
+        working-directory: apps/client
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop
+          flutter create --platforms=windows --no-pub .
+          git restore --source=HEAD -- pubspec.lock
+          flutter pub get --enforce-lockfile
+          flutter build windows
+      - name: Save Windows demo bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: quota-hub-windows-demo
+          path: apps/client/build/windows/x64/runner/Release/
+          if-no-files-found: error
+          retention-days: 7
+
+  apple:
+    runs-on: macos-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flutter SDK
+        run: |
+          git clone --depth 1 --branch 3.47.5 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Build macOS and iOS simulator demos
+        working-directory: apps/client
+        run: |
+          flutter config --enable-macos-desktop
+          flutter create --platforms=macos,ios --no-pub .
+          git restore --source=HEAD -- pubspec.lock
+          flutter pub get --enforce-lockfile
+          flutter build macos --debug
+          flutter build ios --simulator --debug

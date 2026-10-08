@@ -59,3 +59,8 @@ Apple 扩展通过 App Groups 共享快照；其他系统使用相应安全存�
 - https://developer.apple.com/documentation/widgetkit/keeping-a-widget-up-to-date
 - https://developer.android.com/develop/ui/compose/glance
 - https://learn.microsoft.com/en-us/windows/apps/develop/widgets/widget-providers
+
+
+## Android 用户自带 Key 接入
+
+Android 现支持应用内填写个人 DeepSeek API Key，直接访问固定官方 HTTPS 余额接口，无需上述自托管服务。Key 以 Android Keystore 加密保存在本机不备份目录；系统组件仍只接收不含 Key 的余额快照。其他平台保留原有自托管测试路径。此模式无后台刷新，也不提供共享账户或多人托管。

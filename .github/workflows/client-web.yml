@@ -1,0 +1,26 @@
+name: Flutter client prototype
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep demo asset in sync
+        run: node scripts/sync-client-fixtures.mjs --check
+      - name: Install Flutter SDK
+        run: |
+          git clone --depth 1 --branch 3.47.5 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Generate web runner and verify client
+        working-directory: apps/client
+        run: |
+          flutter config --enable-web
+          flutter create --platforms=web --no-pub .
+          git restore --source=HEAD -- pubspec.lock
+          flutter pub get --enforce-lockfile
+          flutter analyze lib test
+          flutter test
+          flutter build web
