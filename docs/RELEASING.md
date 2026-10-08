@@ -1,6 +1,6 @@
 # Android 安装包分发
 
-用户指定 GitHub Releases 为安装包下载入口。当前版本：0.8.0 Android 应用身份迁移测试版。
+用户指定 GitHub Releases 为安装包下载入口。当前版本：0.9.0+12 多平台测试版。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
 - 0.8.0 发布后由 GitHub Releases 提供 ARM64、ARMv7、x86_64 与通用 APK。
@@ -44,6 +44,10 @@ Android applicationId 正式改为 `com.yuashie.astracct`，固定签名证书�
 发布流水线仅在测试、静态检查、Release AOT 构建、固定签名和 APK 元数据校验全部通过后创建 GitHub Release，并上传四种 APK、SHA256SUMS.txt 与 apk-report.json。
 
 
-## 0.9.0 开发候选（未公开发布）
+## 当前包：0.9.0+12 多平台测试版
 
-主线已准备 0.9.0+12，94 项 Flutter 测试、静态检查和各端构建通过，已生成四种固定签名 Android 候选 APK，以及 Windows/macOS 桌面候选包。桌面生产包和原生核验见 [桌面说明](DESKTOP.md)；原 +11 候选保留原编号。当前 Releases 与个人网站仍提供公开的 0.8.0。候选构建来源、哈希和未完成的真机验收见 [核验报告](reports/0.9.0-validation.md)。不得把候选产物称为已正式发布。
+[Release](https://github.com/southkite2023/quota-hub/releases/tag/v0.9.0) 已公开并设为 Latest。提供四种 Android APK、Windows x64 完整 ZIP、macOS Universal ZIP（Intel + Apple Silicon，macOS 12+），以及 SHA256SUMS.txt、apk-report.json 和 packages.json。Android 沿用既有固定包名和证书，四种 ABI 使用构建号 12。
+
+标签/构建源码 `1843ef382cb3a616443c54421618fbdb03707f1a`，原生构建 `37734459516`，客户端检查 `37734459611`；发布运行 `37738175470`。发布前验证完整 artifact 摘要，重新核验 Android 包名/版本/签名/AOT/ABI/16 KB 对齐，并检查桌面完整结构、macOS 应用身份及 Universal 可执行文件。先建草稿并上传全部附件，再公开。一次性高权限发布工作流和脚本已移除。
+
+94 项 Flutter 测试与分析通过；Windows/macOS 原生窗口和安全存储自动检查通过。候选 +11 保持原编号，未作为本次公开附件。仍未完成真机升级、真实 API 凭据、多屏 DPI、人工拖动和长期刷新验收；macOS 未配置 Apple 分发签名与公证。详细使用见 [桌面说明](DESKTOP.md)，下载资产以 Release 清单为准。
