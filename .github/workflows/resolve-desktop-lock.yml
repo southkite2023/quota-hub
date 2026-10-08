@@ -1,0 +1,22 @@
+name: Resolve desktop dependency lock
+on:
+  push:
+    branches: [feat/desktop-floating-balances]
+    paths: ['apps/client/pubspec.yaml', '.github/workflows/resolve-desktop-lock.yml']
+permissions:
+  contents: read
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          git clone --depth 1 --branch 3.47.5 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - working-directory: apps/client
+        run: |
+          flutter pub get
+          echo 'ASTRACCT_LOCK_START'
+          cat pubspec.lock
+          echo 'ASTRACCT_LOCK_END'
