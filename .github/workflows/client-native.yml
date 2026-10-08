@@ -82,22 +82,33 @@ jobs:
         run: |
           git clone --depth 1 --branch 3.47.5 https://github.com/flutter/flutter.git "$env:RUNNER_TEMP\flutter"
           Add-Content -Path $env:GITHUB_PATH -Value "$env:RUNNER_TEMP\flutter\bin"
-      - name: Build Windows demo app
+      - name: Build Windows desktop client
         working-directory: apps/client
         shell: pwsh
         run: |
           flutter config --enable-windows-desktop
           flutter create --platforms=windows --no-pub .
+          python ../../scripts/configure-desktop-runners.py
           git restore --source=HEAD -- pubspec.lock
           flutter pub get --enforce-lockfile
           flutter build windows
-      - name: Save Windows demo bundle
+      - name: Save Windows candidate bundle
         uses: actions/upload-artifact@v4
         with:
-          name: quota-hub-windows-demo
+          name: astracct-windows-candidate
           path: apps/client/build/windows/x64/runner/Release/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Native Windows window and vault smoke check
+        working-directory: apps/client
+        shell: pwsh
+        run: |
+          flutter build windows --target=test/desktop_native_smoke.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $process = Start-Process -FilePath "build/windows/x64/runner/Release/astracct.exe" -PassThru
+          if (-not $process.WaitForExit(90000)) { $process.Kill(); throw 'Native Windows smoke test timed out.' }
+          if ($process.ExitCode -ne 0) { throw "Native Windows smoke test failed: $($process.ExitCode)" }
 
   apple:
     runs-on: macos-latest
@@ -113,7 +124,27 @@ jobs:
         run: |
           flutter config --enable-macos-desktop
           flutter create --platforms=macos,ios --no-pub .
+          python3 ../../scripts/configure-desktop-runners.py
           git restore --source=HEAD -- pubspec.lock
           flutter pub get --enforce-lockfile
-          flutter build macos --debug
+          flutter build macos --release
+          mkdir -p ../../desktop-release
+          ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/Astracct.app ../../desktop-release/Astracct-macos.zip
           flutter build ios --simulator --debug
+
+      - name: Save macOS candidate bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: astracct-macos-candidate
+          path: desktop-release/Astracct-macos.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Native macOS window and vault smoke check
+        working-directory: apps/client
+        run: |
+          flutter build macos --release --target=test/desktop_native_smoke.dart
+          python3 - <<'PYSMOKE'
+          import subprocess
+          subprocess.run(['build/macos/Build/Products/Release/Astracct.app/Contents/MacOS/Astracct'], check=True, timeout=90)
+          PYSMOKE

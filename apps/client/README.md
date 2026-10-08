@@ -1,6 +1,6 @@
 # Flutter 客户端原型
 
-此目录为模拟快照驱动的最小主界面。三张账户卡片与状态切换通过 GitHub Actions 的 Web、Android、Windows、macOS、iOS 模拟器构建；设备安装、实际显示与原生小组件尚未验收。Android 支持在应用中设置自己的 DeepSeek API Key 并直接查询官方余额接口；未配置时不显示虚构的 DeepSeek 余额。其余平台仍保留原有演示/自托管查询路径。
+此目录为模拟快照驱动的最小主界面。三张账户卡片与状态切换通过 GitHub Actions 的 Web、Android、Windows、macOS、iOS 模拟器构建；设备安装、实际显示与原生小组件尚未验收。Android 支持在应用中设置自己的 DeepSeek API Key 并直接查询官方余额接口；未配置时不显示虚构的 DeepSeek 余额。Windows/macOS 现使用真实账户管理和悬浮余额模式，详见 [桌面端说明](../../docs/DESKTOP.md)；Web/iOS 保留演示/自托管路径。
 
 在安装 Flutter SDK 的环境中，从 `apps/client` 运行：
 
@@ -61,3 +61,10 @@ Android runner 中加入了一个 AppWidget。安装新的调试 APK 后先打�
 类别保存在加密账户配置中，管理列表显示类别和服务商。旧配置缺少类别时，阿里云/腾讯云自动归入云服务器，其他归入 AI 订阅；原有自定义账户可在编辑页调整类别。
 
 `assets/app-icon.png` 保留用户上传的原始图标；Android、iOS、macOS、Windows 和 Web 目录下包含对应尺寸的启动图标资源。生成平台工程时使用现有 `flutter create --platforms=… .` 命令，不加 `--overwrite`，以保留自定义图标和原生实现。
+
+
+## Windows / macOS 桌面端
+
+先执行 `flutter create --platforms=windows,macos --no-pub .`，再从仓库根目录运行 `python3 scripts/configure-desktop-runners.py`，以确保稳定应用标识和 macOS 出站网络权限。恢复仓库的 pubspec.lock 后运行 `flutter pub get --enforce-lockfile`。
+
+在对应操作系统执行 `flutter run -d windows` 或 `flutter run -d macos`。桌面端凭据使用系统安全存储，与 Android 账户库独立。原生冒烟入口 `test/desktop_native_smoke.dart` 仅供 CI 检查窗口和系统安全存储，不能作为用户安装包。
