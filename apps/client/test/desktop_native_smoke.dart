@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:quota_hub/app_theme.dart';
 import 'package:quota_hub/desktop_window.dart';
+import 'package:quota_hub/macos_menu_bar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +31,21 @@ Future<void> main() async {
     if (await storage.read(key: key) != 'synthetic-smoke-value') throw StateError('Native secure storage round trip failed');
     await storage.delete(key: key);
     if (await storage.read(key: key) != null) throw StateError('Native secure storage delete failed');
+    if (Platform.isMacOS) {
+      final menu = NativeMacMenuHost();
+      await menu.initialize((_, _) async {});
+      await menu.update({'title': '9.00 USD', 'tooltip': 'synthetic menu check', 'selected': '', 'hidden': false, 'choices': <Map<String, String>>[]});
+      final status = await macMenuChannel.invokeMapMethod<String, dynamic>('inspect');
+      if (status?['installed'] != true || status?['title'] != '9.00 USD') throw StateError('Native status item missing');
+      if (!await windowManager.isPreventClose()) throw StateError('Menu mode must keep running on window close');
+      await windowManager.close();
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      if (await windowManager.isVisible()) throw StateError('Close should hide the window');
+      await macMenuChannel.invokeMethod<void>('reopen');
+      if (!await windowManager.isVisible()) throw StateError('Hidden window could not reopen');
+      menu.dispose();
+      stdout.writeln('ASTRACCT_MAC_MENU_SMOKE_PASS: NSStatusItem title, close hides, reopen');
+    }
     stdout.writeln('ASTRACCT_DESKTOP_SMOKE_PASS: window size, pin, restore, native vault write/read/delete');
     exit(0);
   } catch (error) {

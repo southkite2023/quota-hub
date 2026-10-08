@@ -20,6 +20,8 @@ if mac.is_dir() and (mac / 'Configs/AppInfo.xcconfig').exists():
         entitlements['com.apple.security.network.client'] = True
         # The desktop vault uses the legacy Keychain: no shared access group or provisioning profile.
         path.write_bytes(plistlib.dumps(entitlements))
+    (mac / 'MainFlutterWindow.swift').write_text((ROOT.parents[1] / 'scripts/macos/MainFlutterWindow.swift').read_text())
+    (mac / 'AppDelegate.swift').write_text((ROOT.parents[1] / 'scripts/macos/AppDelegate.swift').read_text())
     print('macOS identity and outbound network permission configured')
 
 windows = ROOT / 'windows'
