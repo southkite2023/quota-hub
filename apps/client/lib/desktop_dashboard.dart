@@ -44,7 +44,7 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
     if (!_accounts.ready) unawaited(_accounts.initialize());
     _accounts.addListener(_syncMenu);
     _menu?.addListener(_menuChanged);
-    if (_menu != null) unawaited(_menu!.initialize(_menuAction).then((_) => _syncMenu()));
+    if (_menu != null) unawaited(_menu.initialize(_menuAction).then((_) => _syncMenu()));
   }
   @override
   void dispose() {
@@ -101,12 +101,12 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
         DropdownButton<String>(
           isExpanded: true,
           hint: const Text('菜单栏显示'),
-          value: _menu!.choices.any((c) => c.id == _menu!.selected) ? _menu!.selected : '',
+          value: _menu.choices.any((c) => c.id == _menu.selected) ? _menu.selected : '',
           items: [const DropdownMenuItem(value: '', child: Text('仅显示图标')),
-            for (final choice in _menu!.choices) DropdownMenuItem(value: choice.id, child: Text(choice.label, overflow: TextOverflow.ellipsis))],
-          onChanged: _menu!.ready ? (id) { if (id != null) unawaited(_selectMenu(id)); } : null,
+            for (final choice in _menu.choices) DropdownMenuItem(value: choice.id, child: Text(choice.label, overflow: TextOverflow.ellipsis))],
+          onChanged: _menu.ready ? (id) { if (id != null) unawaited(_selectMenu(id)); } : null,
         ),
-        if (_menu!.error != null) Text(_menu!.error!, style: const TextStyle(color: AstracctTheme.error)),
+        if (_menu.error != null) Text(_menu.error!, style: const TextStyle(color: AstracctTheme.error)),
         OutlinedButton.icon(onPressed: () => _window.close(), icon: const Icon(Icons.power_settings_new), label: const Text('退出星账')),
         const SizedBox(height: 12),
       ],
