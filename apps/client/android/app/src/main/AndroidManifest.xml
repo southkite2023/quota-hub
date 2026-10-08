@@ -7,7 +7,7 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
-        android:label="Quota Hub"
+        android:label="星账 Astracct"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

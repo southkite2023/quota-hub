@@ -3,9 +3,9 @@
     android:id="@+id/quota_widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
     android:orientation="vertical" android:padding="12dp" android:background="@drawable/quota_widget_background">
     <TextView android:id="@+id/quota_widget_title" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="账户余额" android:textColor="#BCEAD9" android:textSize="14sp" android:textStyle="bold" android:paddingBottom="8dp" />
+        android:text="账户余额" android:textColor="@color/astracct_widget_title" android:textSize="14sp" android:textStyle="bold" android:paddingBottom="8dp" />
     <ListView android:id="@+id/quota_widget_list" android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="1" android:divider="#33434C" android:dividerHeight="1dp" />
+        android:layout_weight="1" android:divider="@color/astracct_widget_border" android:dividerHeight="1dp" />
     <TextView android:id="@+id/quota_widget_empty" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="打开应用勾选账户" android:textColor="#FFFFFF" android:textSize="14sp" />
+        android:text="打开应用勾选账户" android:textColor="@color/astracct_widget_text" android:textSize="14sp" />
 </LinearLayout>

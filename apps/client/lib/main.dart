@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 import 'api_accounts.dart';
+import 'app_theme.dart';
 import 'account_settings.dart';
 import 'background_refresh.dart';
 import 'package:flutter/services.dart';
@@ -23,14 +24,9 @@ class QuotaHubApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'Quota Hub',
+        title: '星账 Astracct',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          brightness: Brightness.dark,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF72DAB2), brightness: Brightness.dark),
-          scaffoldBackgroundColor: const Color(0xFF0D1118),
-        ),
+        theme: AstracctTheme.light(),
         home: const Dashboard(),
       );
 }
@@ -205,7 +201,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Quota Hub'), actions: [
+        appBar: AppBar(title: const Text('星账 Astracct'), actions: [
           IconButton(
             tooltip: _hideMoney ? '显示金额' : '隐藏金额',
             icon: Icon(_hideMoney ? Icons.visibility_off_outlined : Icons.visibility_outlined),
@@ -250,18 +246,18 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
             }
             return SafeArea(
               child: ListView(padding: const EdgeInsets.all(20), children: [
-                Text(_android ? (_personal.connected ? '账户余额 · 各平台分别查询' : '添加余额账户，集中查看余额') : liveConfigured ? 'DeepSeek 实时查询 · 另外两项为演示数据' : '演示数据 · 未连接真实账户', style: const TextStyle(color: Color(0xFF8FD8BA))),
+                Text(_android ? (_personal.connected ? '账户余额 · 各平台分别查询' : '添加余额账户，集中查看余额') : liveConfigured ? 'DeepSeek 实时查询 · 另外两项为演示数据' : '演示数据 · 未连接真实账户', style: const TextStyle(color: AstracctTheme.success)),
                 if (_android) ...[
                   const SizedBox(height: 12),
                   if (!_personal.ready || _personal.busy) const LinearProgressIndicator(),
                   Text(_personal.refreshMinutes == 0 ? '自动刷新已关闭' : '自动刷新：每 ${_personal.refreshMinutes} 分钟'),
-                  if (_personal.error != null) Text(_personal.error!, style: const TextStyle(color: Color(0xFFFFC77D))),
-                  for (final entry in _personal.entries.where((e) => _personal.errors.containsKey(e.id))) Text('${entry.name}：${_personal.errors[entry.id]}', style: const TextStyle(color: Color(0xFFFFC77D))),
-                  if (_widgetError != null) Text(_widgetError!, style: const TextStyle(color: Color(0xFFFFC77D))),
+                  if (_personal.error != null) Text(_personal.error!, style: const TextStyle(color: AstracctTheme.error)),
+                  for (final entry in _personal.entries.where((e) => _personal.errors.containsKey(e.id))) Text('${entry.name}：${_personal.errors[entry.id]}', style: const TextStyle(color: AstracctTheme.error)),
+                  if (_widgetError != null) Text(_widgetError!, style: const TextStyle(color: AstracctTheme.error)),
                   FilledButton.icon(onPressed: _personal.ready ? _settings : null, icon: const Icon(Icons.link), label: const Text('管理 / 添加余额账户')),
                 ],
                 if (_serverConfigured && _loadingLive) const LinearProgressIndicator(),
-                if (_serverConfigured && _liveError != null) Text(_liveError!, style: const TextStyle(color: Color(0xFFFFC77D))),
+                if (_serverConfigured && _liveError != null) Text(_liveError!, style: const TextStyle(color: AstracctTheme.error)),
                 if (_serverConfigured && _liveAccount == null) const Text('DeepSeek 尚未取得余额。'),
                 const SizedBox(height: 12),
                 Text('账户概览', style: Theme.of(context).textTheme.headlineMedium),
@@ -269,7 +265,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                 Text(_android ? (_personal.connected ? '每个账户单独更新，不跨币种相加。' : '选择服务商，配置账户后验证并查看余额。') : liveConfigured ? 'DeepSeek 经自托管服务查询；订阅和阿里云仍为虚构示例。' : '三类账户共用一份版本化快照。金额与流量均为虚构示例。'),
                 if (_widgetAccountId != null) ...[
                   const SizedBox(height: 10),
-                  const Text('已从桌面组件打开对应账户', style: TextStyle(color: Color(0xFF8FD8BA))),
+                  const Text('已从桌面组件打开对应账户', style: TextStyle(color: AstracctTheme.success)),
                 ],
                 if (_android) ...[
                   const SizedBox(height: 12),
@@ -319,7 +315,7 @@ class BalanceSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final balances = account.metrics.where((m) => m.key == 'available' || m.key == 'available_credit' || m.key == 'month_spent').toList();
-    return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(
+    return Card(color: AstracctTheme.accountSurface(account.provider), child: Padding(padding: const EdgeInsets.all(16), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(account.label, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
@@ -353,9 +349,10 @@ class _AccountCard extends StatelessWidget {
     };
     return Card(
       margin: EdgeInsets.zero,
+      color: AstracctTheme.accountSurface(account.provider),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: selected ? const Color(0xFF8FD8BA) : Colors.transparent, width: 2),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: selected ? AstracctTheme.success : const Color(0xFFDCE2ED), width: 2),
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -415,8 +412,12 @@ class _MetricLine extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Expanded(child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
-        Text(status, style: TextStyle(color: metric.state == MetricState.ok
-            ? const Color(0xFF8FD8BA) : const Color(0xFFFFC77D))),
+        Text(status, style: TextStyle(color: switch (metric.state) {
+          MetricState.ok => AstracctTheme.success,
+          MetricState.unknown => AstracctTheme.muted,
+          MetricState.stale => AstracctTheme.warning,
+          MetricState.error => AstracctTheme.error,
+        })),
       ]),
       const SizedBox(height: 5),
       Text(value, style: Theme.of(context).textTheme.titleMedium),
