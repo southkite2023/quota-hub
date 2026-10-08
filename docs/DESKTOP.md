@@ -40,13 +40,13 @@ Windows：下载 ZIP 后完整解压，在同一目录运行 `astracct.exe`，�
 
 macOS：解压 ZIP 后打开 `Astracct.app`；此包未进行 Apple Developer 分发签名和公证，不宣称已经通过 Gatekeeper 或商店审核。
 
-已在 GitHub Releases 公开发布桌面与 Android +12 测试包，个人网站项目 001 已部署对应的 v0.9.0 附件直链。Windows 为 x64，macOS 为 Intel + Apple Silicon Universal（macOS 12+）。
+已在 GitHub Releases 公开发布桌面与 Android +13 测试包，个人网站项目 001 已部署对应的 v0.10.0 附件直链。Windows 为 x64，macOS 为 Intel + Apple Silicon Universal（macOS 12+）。
 
 - [Windows 下载入口](https://yuashie.cn/projects/001/download?platform=Windows)
 - [macOS 下载入口](https://yuashie.cn/projects/001/download?platform=macOS)
 - [Android 下载入口](https://yuashie.cn/projects/001/download?platform=Android)
 
-发布核验运行 `37738175470`；Netweb PR #5 合并 `04d393f10ccc513eb85ebf220b7c666c17f0704a`，部署运行 `37738371250` 成功且公网版本一致。候选清单保留原文件名用于追溯，公开文件名与校验值以 Release packages.json / SHA256SUMS.txt 为准。真实账户验证、人工拖动、跨显示器/DPI、长期刷新与用户机器安装尚待验收；不宣称已完成。
+发布核验运行 `37742744027`；Netweb PR #6 合并 `ba5a1d57c939fcffeac9383a7e4b3775613dba9c`，部署运行 `37743281745` 成功且公网版本一致。候选清单保留原文件名用于追溯，公开文件名与校验值以 Release packages.json / SHA256SUMS.txt 为准。真实账户验证、人工拖动、跨显示器/DPI、长期刷新与用户机器安装尚待验收；不宣称已完成。
 
 ## 0.10.0 菜单栏测试版
 
