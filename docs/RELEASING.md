@@ -1,6 +1,6 @@
 # Android 安装包分发
 
-用户指定 GitHub Releases 为安装包下载入口。当前版本：0.9.0+12 多平台测试版。
+用户指定 GitHub Releases 为安装包下载入口。当前版本：0.10.0+13 多平台测试版。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
 - 0.8.0 发布后由 GitHub Releases 提供 ARM64、ARMv7、x86_64 与通用 APK。
@@ -51,3 +51,9 @@ Android applicationId 正式改为 `com.yuashie.astracct`，固定签名证书�
 标签/构建源码 `1843ef382cb3a616443c54421618fbdb03707f1a`，原生构建 `37734459516`，客户端检查 `37734459611`；发布运行 `37738175470`。发布前验证完整 artifact 摘要，重新核验 Android 包名/版本/签名/AOT/ABI/16 KB 对齐，并检查桌面完整结构、macOS 应用身份及 Universal 可执行文件。先建草稿并上传全部附件，再公开。一次性高权限发布工作流和脚本已移除。
 
 94 项 Flutter 测试与分析通过；Windows/macOS 原生窗口和安全存储自动检查通过。候选 +11 保持原编号，未作为本次公开附件。仍未完成真机升级、真实 API 凭据、多屏 DPI、人工拖动和长期刷新验收；macOS 未配置 Apple 分发签名与公证。详细使用见 [桌面说明](DESKTOP.md)，下载资产以 Release 清单为准。
+
+## 当前包：0.10.0+13 菜单栏测试版
+
+[Release](https://github.com/southkite2023/quota-hub/releases/tag/v0.10.0) 已公开并设为 Latest，旧版本和附件保留。源码 `36120a8745a2f52235c9b5b0c7fe5c34a9785154`，原生运行 `37741806130`，客户端运行 `37741806102`，发布运行 `37742744027`。99 项测试与静态检查、各端构建和 macOS 菜单栏原生检查通过；发布前再次校验固定证书及 Android 0.10.0/versionCode 13、包名、AOT、ABI 和 16 KB 对齐。
+
+Android 签名 artifact `11534098591`，Windows `11534142932`，macOS `11534281870`；匹配 Android 符号 `11534760450`。桌面生产包在构建冒烟入口前归档，未把测试程序发布给用户。macOS Universal ZIP 覆盖 Intel + Apple Silicon，macOS 12+；未签名公证。真实用户设备、真实 API、长时间刷新仍待验收。成功后移除临时高权限发布工作流及脚本。公开安装包摘要见 [清单](reports/0.10.0-packages.json)。

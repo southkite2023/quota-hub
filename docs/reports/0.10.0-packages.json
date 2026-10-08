@@ -1,0 +1,32 @@
+[
+  {
+    "file": "astracct-0.10.0-arm64-v8a.apk",
+    "bytes": 17188581,
+    "sha256": "74f321c0408a09382779a4b6bfcc433c42632c117f96cfa88a6299ac5fa5c0d2"
+  },
+  {
+    "file": "astracct-0.10.0-armeabi-v7a.apk",
+    "bytes": 14366443,
+    "sha256": "82d2cfda7c739a8b56f7c250a1de68665605113a79f27186d34998fa0f0a51dc"
+  },
+  {
+    "file": "astracct-0.10.0-macos-universal.zip",
+    "bytes": 19919933,
+    "sha256": "379be7fdf5caa9d551cabb6aef02f2263086e1d107e9b367db322a4caf405401"
+  },
+  {
+    "file": "astracct-0.10.0-universal.apk",
+    "bytes": 49260688,
+    "sha256": "1f6222be34b60242cf81960d39705777f5391dd6e5d99c1528542d535d5646c3"
+  },
+  {
+    "file": "astracct-0.10.0-windows-x64.zip",
+    "bytes": 12341507,
+    "sha256": "331dbd289937353955efc6cfe0b8b2abd603374be273458546dd57f45c9dbbec"
+  },
+  {
+    "file": "astracct-0.10.0-x86_64.apk",
+    "bytes": 18671324,
+    "sha256": "a9e7c88b0a0cb49b095ba7f45e98096b800f3b242694bcc0672524d245f9af6d"
+  }
+]
