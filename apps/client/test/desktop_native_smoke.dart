@@ -41,7 +41,7 @@ Future<void> main() async {
       await windowManager.close();
       await Future<void>.delayed(const Duration(milliseconds: 250));
       if (await windowManager.isVisible()) throw StateError('Close should hide the window');
-      await windowManager.show();
+      await macMenuChannel.invokeMethod<void>('reopen');
       if (!await windowManager.isVisible()) throw StateError('Hidden window could not reopen');
       menu.dispose();
       stdout.writeln('ASTRACCT_MAC_MENU_SMOKE_PASS: NSStatusItem title, close hides, reopen');

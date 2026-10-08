@@ -36,6 +36,7 @@ class MainFlutterWindow: NSWindow {
         self.selectedID = args["selected"] as? String ?? ""
         self.hiddenAmounts = args["hidden"] as? Bool ?? false
         result(nil)
+      case "reopen": self.openDashboard(); result(nil)
       case "inspect":
         result(["installed": self.statusItem?.button != nil,
                 "title": self.statusItem?.button?.title ?? "", "choices": self.choices.count])
@@ -91,7 +92,7 @@ class MainFlutterWindow: NSWindow {
     item.target = self
     return item
   }
-  @objc private func openDashboard() {
+  @objc func openDashboard() {
     NSApp.activate(ignoringOtherApps: true)
     if isMiniaturized { deminiaturize(nil) }
     makeKeyAndOrderFront(nil)
