@@ -1,8 +1,10 @@
-# Quota Hub · 余量看板
+# 星账 Astracct
 
 Android 账户余额与费用查看工具：按账户独立查询，不把不同币种相加；支持前台刷新、可选后台刷新和桌面小组件。
 
-当前公开下载为 [0.7.1 精简测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.7.1)，由个人网页提供入口、GitHub Releases 托管安装包；不向国内应用商店提交。ARM64 包 17.02 MB，通用包 48.80 MB，已通过构建和模拟器基本安装启动检查，真实账户与厂商真机完整验收仍待完成。
+当前开发主线为 **0.9.0+11 候选版本**：已完成历史分支整合与首轮浅色 UI，88 项 Flutter 测试、静态检查和各端构建通过，固定签名 APK 已生成，但尚未公开发布或完成真机验收。详见 [0.9.0 验证报告](docs/reports/0.9.0-validation.md)。
+
+当前公开下载为 [0.8.0 应用身份迁移测试版](https://github.com/southkite2023/quota-hub/releases/tag/v0.8.0)，由 [个人网页](https://yuashie.cn/projects/001/download) 提供入口、GitHub Releases 托管安装包；不向国内应用商店提交。ARM64 包约 17.02 MB，通用包约 48.80 MB。0.7.1 及更早版本的旧包名不能覆盖升级至 0.8.0；后续以 `com.yuashie.astracct` 和既有固定签名为升级基线。真实账户与厂商真机完整验收仍待完成。
 
 ## 已有功能
 

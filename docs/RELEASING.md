@@ -26,7 +26,7 @@
 本次一次性发布工作流成功后移除，避免以后更新 PR 时意外重复发布。
 
 
-## 当前包：0.7.1 精简测试版
+## 历史包：0.7.1 精简测试版
 
 [发布页](https://github.com/southkite2023/quota-hub/releases/tag/v0.7.1)，已公开并设为 Latest。个人网页提供下载按钮，GitHub Releases 托管安装包；不提交国内应用商店。提供通用、ARM64、ARMv7、x86_64 四种固定签名 Release APK、SHA256SUMS.txt 与 apk-report.json。
 
@@ -42,3 +42,8 @@
 Android applicationId 正式改为 `com.yuashie.astracct`，固定签名证书保持不变。由于包名变化，0.5.0–0.7.1 的 `com.example.quota_hub` 无法覆盖升级到 0.8.0；首次迁移需要卸载旧版并重新安装，之后以新包名和现有固定签名作为连续升级基线。
 
 发布流水线仅在测试、静态检查、Release AOT 构建、固定签名和 APK 元数据校验全部通过后创建 GitHub Release，并上传四种 APK、SHA256SUMS.txt 与 apk-report.json。
+
+
+## 0.9.0 开发候选（未公开发布）
+
+主线已准备 0.9.0+11，88 项 Flutter 测试、静态检查和各端构建通过，已生成四种固定签名候选 APK。当前 Releases 与个人网站仍提供公开的 0.8.0。候选构建来源、哈希和未完成的真机验收见 [核验报告](reports/0.9.0-validation.md)。不得把候选产物称为已正式发布。
