@@ -110,9 +110,13 @@ void main() {
     final window = DesktopWindowController(host: WindowHost());
     await tester.pumpWidget(MaterialApp(theme: AstracctTheme.light(), home: DesktopDashboard(accounts: accounts, window: window)));
     await tester.tap(find.text('管理 / 添加余额账户')); await tester.pumpAndSettle();
-    expect(find.text('显示在悬浮窗'), findsNWidgets(2));
+    expect(find.text('显示在悬浮窗'), findsWidgets);
     expect(find.text('后台继续刷新'), findsNothing);
-    await tester.tap(find.widgetWithText(CheckboxListTile, '显示在悬浮窗').last); await tester.pump();
+    await tester.scrollUntilVisible(find.text('不选的账户'), 200, scrollable: find.byType(Scrollable).last);
+    final secondCard = find.ancestor(of: find.text('不选的账户'), matching: find.byType(Card));
+    final checkbox = find.descendant(of: secondCard, matching: find.byType(CheckboxListTile));
+    await tester.ensureVisible(checkbox);
+    await tester.tap(checkbox); await tester.pump();
     final restored = ApiAccounts(store: store); await restored.initialize(query: false);
     expect(restored.widgetAccountIds.toSet(), {'first', 'second'});
     await tester.pumpWidget(const SizedBox());

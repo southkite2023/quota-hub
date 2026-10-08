@@ -27,7 +27,10 @@ class NativeDesktopWindow implements DesktopWindowHost {
   Future<void> apply({required bool floating, required Rect bounds, required bool pinned}) async {
     if (await windowManager.isMaximized()) await windowManager.unmaximize();
     await windowManager.setMinimumSize(floating ? const Size(320, 180) : const Size(640, 420));
-    await windowManager.setTitleBarStyle(floating ? TitleBarStyle.hidden : TitleBarStyle.normal);
+    await windowManager.setTitleBarStyle(
+      floating ? TitleBarStyle.hidden : TitleBarStyle.normal,
+      windowButtonVisibility: !floating,
+    );
     await windowManager.setBounds(bounds);
     await windowManager.setAlwaysOnTop(pinned);
     await windowManager.show();
@@ -65,9 +68,13 @@ class DesktopWindowController extends ChangeNotifier {
       // A partially applied native change must not strand the user in compact mode.
       if (previous != null) {
         try { await _host.apply(floating: oldFloating, bounds: previous, pinned: oldPinned); }
-        catch (_) { /* Surface the failure; native controls remain available. */ }
+        catch (_) {
+          // Keep the compact recovery/exit controls visible if native rollback failed.
+          floating = true;
+          error = '窗口恢复失败，请通过悬浮窗按钮返回或退出。';
+        }
       }
-      error = '窗口切换失败，请重试。';
+      error ??= '窗口切换失败，请重试。';
     } finally { busy = false; notifyListeners(); }
   }
 
