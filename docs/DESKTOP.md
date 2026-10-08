@@ -1,6 +1,6 @@
 # 星账桌面端：Windows + macOS
 
-当前候选：0.9.0+12，未公开发布。桌面账户需要在桌面端重新配置，不自动同步手机凭据。
+当前公开测试版：0.9.0+12，[GitHub Release](https://github.com/southkite2023/quota-hub/releases/tag/v0.9.0)。桌面账户需要在桌面端重新配置，不自动同步手机凭据。
 
 ## 使用
 
@@ -34,10 +34,16 @@ CI 构建生产客户端并另行构建原生冒烟入口，在 Windows/macOS �
 - Windows 生产候选产物 `11531018234`，macOS 生产候选产物 `11530854902`；生产包在构建冒烟入口前已归档，避免把测试程序交给用户。包已下载保存，逐包重算摘要；Windows EXE 文件版本 0.9.0.12、运行库和 AOT 数据存在，macOS bundle 标识、0.9.0 / 12 版本及 9 个符号链接已核对。见 [下载包摘要](reports/0.9.0-desktop-packages.json)。
 - Android +12 四种候选包固定证书校验通过，仍为 `com.yuashie.astracct` / 0.9.0 / versionCode 12；签名产物 `11530624437`，符号 `11531510597`。未重新生成密钥或修改旧账户库。
 
-## 候选包使用
+## 下载包使用
 
 Windows：下载 ZIP 后完整解压，在同一目录运行 `astracct.exe`，保留 DLL 和 data 目录。
 
 macOS：解压 ZIP 后打开 `Astracct.app`；此包未进行 Apple Developer 分发签名和公证，不宣称已经通过 Gatekeeper 或商店审核。
 
-本轮没有在 GitHub Releases 公开发布桌面或 Android +12 安装包，个人网站仍指向公开的 0.8.0。真实账户验证、人工拖动、跨显示器/DPI、长期刷新与用户机器安装尚待验收；不宣称已完成。
+已在 GitHub Releases 公开发布桌面与 Android +12 测试包，个人网站项目 001 已部署对应的 v0.9.0 附件直链。Windows 为 x64，macOS 为 Intel + Apple Silicon Universal（macOS 12+）。
+
+- [Windows 下载入口](https://yuashie.cn/projects/001/download?platform=Windows)
+- [macOS 下载入口](https://yuashie.cn/projects/001/download?platform=macOS)
+- [Android 下载入口](https://yuashie.cn/projects/001/download?platform=Android)
+
+发布核验运行 `37738175470`；Netweb PR #5 合并 `04d393f10ccc513eb85ebf220b7c666c17f0704a`，部署运行 `37738371250` 成功且公网版本一致。候选清单保留原文件名用于追溯，公开文件名与校验值以 Release packages.json / SHA256SUMS.txt 为准。真实账户验证、人工拖动、跨显示器/DPI、长期刷新与用户机器安装尚待验收；不宣称已完成。
