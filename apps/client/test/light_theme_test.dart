@@ -38,7 +38,7 @@ void main() {
     expect(find.text('0.00 CNY'), findsNothing);
     expect(find.text('•••• CNY'), findsOneWidget);
     expect(find.text('缓存已过期'), findsOneWidget);
-    expect(find.text('未知'), findsOneWidget);
+    expect(find.text('未知'), findsNWidgets(2));
     expect(find.text('查询失败'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
