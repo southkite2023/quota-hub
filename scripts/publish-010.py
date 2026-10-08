@@ -9,6 +9,7 @@ assert api(repo+'/actions/runs/37741806102')['conclusion']=='success'
 artifacts={a['id']:a for a in api(repo+'/actions/runs/37741806130/artifacts')['artifacts']}
 expected={"11534281870":"d3f2aeaca9f73044ad9ee644320a79733ea6eb6186f442214797a4bc46240db4","11534142932":"331dbd289937353955efc6cfe0b8b2abd603374be273458546dd57f45c9dbbec","11534098591":"a792812fc5462c30ef7a727b7e39737e015282224014798e638fdb010aa607c0"}
 for aid,digest in expected.items():
+    aid = int(aid)
     assert not artifacts[aid]['expired'] and artifacts[aid]['digest']=='sha256:'+digest
     blob=subprocess.check_output(['gh','api',repo+f'/actions/artifacts/{aid}/zip'])
     assert hashlib.sha256(blob).hexdigest()==digest
