@@ -46,4 +46,4 @@ Android applicationId 正式改为 `com.yuashie.astracct`，固定签名证书�
 
 ## 0.9.0 开发候选（未公开发布）
 
-主线已准备 0.9.0+11，88 项 Flutter 测试、静态检查和各端构建通过，已生成四种固定签名候选 APK。当前 Releases 与个人网站仍提供公开的 0.8.0。候选构建来源、哈希和未完成的真机验收见 [核验报告](reports/0.9.0-validation.md)。不得把候选产物称为已正式发布。
+主线已准备 0.9.0+12，94 项 Flutter 测试、静态检查和各端构建通过，已生成四种固定签名 Android 候选 APK，以及 Windows/macOS 桌面候选包。桌面生产包和原生核验见 [桌面说明](DESKTOP.md)；原 +11 候选保留原编号。当前 Releases 与个人网站仍提供公开的 0.8.0。候选构建来源、哈希和未完成的真机验收见 [核验报告](reports/0.9.0-validation.md)。不得把候选产物称为已正式发布。

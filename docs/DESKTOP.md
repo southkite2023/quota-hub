@@ -26,4 +26,18 @@ Android 仍使用原有 Keystore 库，不改变包名、证书或存储格式�
 
 CI 构建生产客户端并另行构建原生冒烟入口，在 Windows/macOS 运行窗口缩小、置顶/取消、恢复和安全存储写入/读取/删除检查；冒烟只使用合成数据、不查询真实 API，不作为分发包。
 
-本轮 CI 结果与候选产物待登记。真实账户验证、人工拖动、跨显示器/DPI、长期刷新与用户机器安装尚待验收；不宣称已完成。
+本轮源码 head `1843ef382cb3a616443c54421618fbdb03707f1a`，通过 [PR #14](https://github.com/southkite2023/quota-hub/pull/14) 合入 main，合并 `f05c065eda496165af5b9e52c8c7ec2230c4c391`。CI 检出 `8cf099a561111d821312ec2a41b500cfa6e656e5` 与主线合并树相同（`802a705fa20e20262986e483047d6dac7df776be`）。
+
+- [客户端验证 37734459611](https://github.com/southkite2023/quota-hub/actions/runs/37734459611)：94/94 Flutter 测试、静态检查和 Web 构建通过。
+- [原生验证 37734459516](https://github.com/southkite2023/quota-hub/actions/runs/37734459516)：Windows Release、macOS Release、iOS 模拟器及 Android Release AOT 构建通过；Windows/macOS 两平台原生窗口和系统安全存储冒烟检查通过，均使用合成数据，不使用真实 API 凭据。
+- 本地合约/服务端 17/17 测试、资产同步检查和 runner 配置重复运行检查通过（保留 sandbox、稳定身份与出站权限）。
+- Windows 生产候选产物 `11531018234`，macOS 生产候选产物 `11530854902`；生产包在构建冒烟入口前已归档，避免把测试程序交给用户。包已下载保存，逐包重算摘要；Windows EXE 文件版本 0.9.0.12、运行库和 AOT 数据存在，macOS bundle 标识、0.9.0 / 12 版本及 9 个符号链接已核对。见 [下载包摘要](reports/0.9.0-desktop-packages.json)。
+- Android +12 四种候选包固定证书校验通过，仍为 `com.yuashie.astracct` / 0.9.0 / versionCode 12；签名产物 `11530624437`，符号 `11531510597`。未重新生成密钥或修改旧账户库。
+
+## 候选包使用
+
+Windows：下载 ZIP 后完整解压，在同一目录运行 `astracct.exe`，保留 DLL 和 data 目录。
+
+macOS：解压 ZIP 后打开 `Astracct.app`；此包未进行 Apple Developer 分发签名和公证，不宣称已经通过 Gatekeeper 或商店审核。
+
+本轮没有在 GitHub Releases 公开发布桌面或 Android +12 安装包，个人网站仍指向公开的 0.8.0。真实账户验证、人工拖动、跨显示器/DPI、长期刷新与用户机器安装尚待验收；不宣称已完成。
