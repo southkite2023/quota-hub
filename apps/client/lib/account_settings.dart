@@ -17,21 +17,22 @@ const _catalog = <({String id, String label, BalanceProvider? provider, String n
 ];
 
 class AccountSettings extends StatelessWidget {
-  const AccountSettings({super.key, required this.connection});
+  const AccountSettings({super.key, required this.connection, this.desktop = false});
   final ApiAccounts connection;
+  final bool desktop;
   void _edit(BuildContext context, [ApiAccount? account]) => Navigator.of(context).push(
     MaterialPageRoute<void>(builder: (_) => AccountEditor(connection: connection, account: account)));
   @override
   Widget build(BuildContext context) => ListenableBuilder(listenable: connection, builder: (context, _) => Scaffold(
     appBar: AppBar(title: const Text('余额账户')),
     body: SafeArea(child: ListView(padding: const EdgeInsets.all(20), children: [
-      RefreshSettings(accounts: connection),
+      RefreshSettings(accounts: connection, desktop: desktop),
       const SizedBox(height: 16),
       const Text('多平台、多账户，余额分别显示。凭据在本机加密保存。'),
       const SizedBox(height: 16),
       if (connection.error != null) Text(connection.error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
       if (connection.busy) const LinearProgressIndicator(),
-      const Text('主界面显示全部账户；勾选要放入小组件的账户，可上下滑动查看全部余额。'),
+      Text(desktop ? '主界面显示全部账户；勾选要放入悬浮窗的账户。' : '主界面显示全部账户；勾选要放入小组件的账户，可上下滑动查看全部余额。'),
       Wrap(children: [
         TextButton(onPressed: connection.busy ? null : () => connection.selectAllWidgets(true), child: const Text('全部勾选')),
         TextButton(onPressed: connection.busy ? null : () => connection.selectAllWidgets(false), child: const Text('全部取消')),
@@ -42,7 +43,7 @@ class AccountSettings extends StatelessWidget {
           Text(account.name, style: Theme.of(context).textTheme.titleMedium),
           Text('${account.category.label} · ${account.provider.label}'),
           if (connection.errors[account.id] != null) Text(connection.errors[account.id]!),
-          CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('显示在桌面小组件'),
+          CheckboxListTile(contentPadding: EdgeInsets.zero, title: Text(desktop ? '显示在悬浮窗' : '显示在桌面小组件'),
             value: connection.widgetAccountIds.contains(account.id),
             onChanged: connection.busy ? null : (value) => connection.setWidgetSelected(account.id, value!)),
           Wrap(spacing: 8, children: [

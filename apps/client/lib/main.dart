@@ -6,6 +6,11 @@ import 'package:flutter/foundation.dart';
 
 import 'api_accounts.dart';
 import 'app_theme.dart';
+import 'balance_summary.dart';
+import 'desktop_platform.dart';
+import 'desktop_dashboard.dart';
+import 'desktop_window.dart';
+export 'balance_summary.dart';
 import 'account_settings.dart';
 import 'background_refresh.dart';
 import 'package:flutter/services.dart';
@@ -17,7 +22,11 @@ import 'widget_bridge.dart';
 @pragma('vm:entry-point')
 void balanceServiceMain() => startBalanceService();
 
-void main() => runApp(const QuotaHubApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (isDesktopClient) await NativeDesktopWindow.initialize();
+  runApp(const QuotaHubApp());
+}
 
 class QuotaHubApp extends StatelessWidget {
   const QuotaHubApp({super.key});
@@ -27,7 +36,7 @@ class QuotaHubApp extends StatelessWidget {
         title: '星账 Astracct',
         debugShowCheckedModeBanner: false,
         theme: AstracctTheme.light(),
-        home: const Dashboard(),
+        home: isDesktopClient ? const DesktopDashboard() : const Dashboard(),
       );
 }
 
@@ -308,24 +317,6 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       );
 }
 
-class BalanceSummary extends StatelessWidget {
-  const BalanceSummary({super.key, required this.account, required this.hideMoney});
-  final Account account;
-  final bool hideMoney;
-  @override
-  Widget build(BuildContext context) {
-    final balances = account.metrics.where((m) => m.key == 'available' || m.key == 'available_credit' || m.key == 'month_spent').toList();
-    return Card(color: AstracctTheme.accountSurface(account.provider), child: Padding(padding: const EdgeInsets.all(16), child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(account.label, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        for (final metric in balances) _MetricLine(metric: metric, hideMoney: hideMoney),
-        if (balances.isEmpty) const Text('暂无可用余额'),
-      ],
-    )));
-  }
-}
-
 class _AccountCard extends StatelessWidget {
   const _AccountCard({required this.account, required this.hideMoney, required this.selected});
   final Account account;
@@ -362,7 +353,7 @@ class _AccountCard extends StatelessWidget {
           Text(account.label, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 18),
           for (final metric in account.metrics) ...[
-            _MetricLine(metric: metric, hideMoney: hideMoney),
+            MetricLine(metric: metric, hideMoney: hideMoney),
             const SizedBox(height: 12),
           ],
           const Divider(),
@@ -377,63 +368,6 @@ class _AccountCard extends StatelessWidget {
     );
   }
 }
-
-class _MetricLine extends StatelessWidget {
-  const _MetricLine({required this.metric, required this.hideMoney});
-  final Metric metric;
-  final bool hideMoney;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = switch (metric.key) {
-      'available' => '可用余额',
-      'available_credit' => '可用额度',
-      'cash_balance' => '现金余额',
-      'bonus' => '赠送余额',
-      'cash' => '充值余额',
-      'purchased' => '累计购买额度',
-      'spent' => '已用额度',
-      'month_spent' => '本月费用（UTC）',
-      'voucher' => '代金券余额',
-      'frozen' => '冻结余额',
-      'remaining' => '剩余流量',
-      'expires_at' => '到期时间',
-      _ => metric.key,
-    };
-    final status = switch (metric.state) {
-      MetricState.ok => '正常',
-      MetricState.unknown => '未知',
-      MetricState.stale => '缓存已过期',
-      MetricState.error => '查询失败',
-    };
-    final value = hideMoney && metric.kind == 'money' && metric.value != null
-        ? '•••• ${metric.unit}'
-        : metric.displayValue;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Expanded(child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
-        Text(status, style: TextStyle(color: switch (metric.state) {
-          MetricState.ok => AstracctTheme.success,
-          MetricState.unknown => AstracctTheme.muted,
-          MetricState.stale => AstracctTheme.warning,
-          MetricState.error => AstracctTheme.error,
-        })),
-      ]),
-      const SizedBox(height: 5),
-      Text(value, style: Theme.of(context).textTheme.titleMedium),
-      if (metric.state == MetricState.stale) Text('上次成功值 · ${_errorLabel(metric.errorCode)}', style: Theme.of(context).textTheme.bodySmall),
-      if (metric.state == MetricState.error) Text(_errorLabel(metric.errorCode), style: Theme.of(context).textTheme.bodySmall),
-    ]);
-  }
-}
-
-String _errorLabel(String? code) => switch (code) {
-      'timeout' => '连接超时',
-      'unauthorized' => '授权失败',
-      'rate_limited' => '请求过频',
-      'provider_unavailable' => '服务不可用',
-      _ => '更新失败',
-    };
 
 String _formatTime(DateTime date) {
   final local = date.toLocal();

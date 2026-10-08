@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'api_accounts.dart';
 
 class RefreshSettings extends StatelessWidget {
-  const RefreshSettings({super.key, required this.accounts});
+  const RefreshSettings({super.key, required this.accounts, this.desktop = false});
   final ApiAccounts accounts;
+  final bool desktop;
   Future<void> _custom(BuildContext context) async {
     final controller = TextEditingController(text: '${accounts.refreshMinutes == 0 ? 5 : accounts.refreshMinutes}');
     String? error;
@@ -34,12 +35,12 @@ class RefreshSettings extends StatelessWidget {
           DropdownMenuItem(value: value, child: Text(value == 0 ? '关闭自动刷新' : '每 $value 分钟'))],
         onChanged: accounts.busy || !accounts.ready || accounts.storageFailed ? null : (value) => accounts.setRefreshMinutes(value!)),
       TextButton(onPressed: accounts.busy || !accounts.ready || accounts.storageFailed ? null : () => _custom(context), child: const Text('自定义时间')),
-      SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('后台继续刷新'),
+      if (!desktop) SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('后台继续刷新'),
         subtitle: const Text('显示常驻通知，增加耗电；可在通知中停止'), value: accounts.backgroundRefresh,
         onChanged: accounts.busy || !accounts.ready || accounts.storageFailed || accounts.refreshMinutes == 0 ? null : accounts.setBackgroundRefresh),
-      if (accounts.backgroundStatus != null) Text(accounts.backgroundStatus!),
-      if (accounts.backgroundRefresh) TextButton(onPressed: accounts.busy || accounts.refreshMinutes == 0 ? null : () => accounts.setBackgroundRefresh(true), child: const Text('重新开启后台刷新')),
-      const Text('默认每 5 分钟更新所有账户。后台与锁屏时会尽量按设定间隔刷新，省电模式、断网或系统限制可能延迟；Android 15 及以上可能在后台运行约 6 小时后停止。强制停止或重启手机后需打开应用。'),
+      if (!desktop && accounts.backgroundStatus != null) Text(accounts.backgroundStatus!),
+      if (!desktop && accounts.backgroundRefresh) TextButton(onPressed: accounts.busy || accounts.refreshMinutes == 0 ? null : () => accounts.setBackgroundRefresh(true), child: const Text('重新开启后台刷新')),
+      Text(desktop ? '默认每 5 分钟更新全部账户。应用运行时，切换到其他程序或悬浮窗仍会刷新；退出应用后停止，睡眠或断网可能延迟。' : '默认每 5 分钟更新所有账户。后台与锁屏时会尽量按设定间隔刷新，省电模式、断网或系统限制可能延迟；Android 15 及以上可能在后台运行约 6 小时后停止。强制停止或重启手机后需打开应用。'),
     ],
   )));
 }

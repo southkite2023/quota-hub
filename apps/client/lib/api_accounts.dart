@@ -480,7 +480,7 @@ class ApiAccounts extends ChangeNotifier {
       final next = [..._widgetAccountIds.where((item) => item != id), if (selected) id];
       await _store.write(_serialize(_entries, next.isEmpty ? null : next.first, selectedIds: next));
       _widgetAccountIds = next;
-    } catch (_) { error = '组件勾选保存失败，原选择未更改。'; }
+    } catch (_) { error = '账户勾选保存失败，原选择未更改。'; }
     finally { busy = false; _scheduleRefresh(); _emit(); }
   }
   Future<void> selectAllWidgets(bool selected) async {
@@ -490,7 +490,7 @@ class ApiAccounts extends ChangeNotifier {
       final next = selected ? _entries.map((e) => e.id).toList() : <String>[];
       await _store.write(_serialize(_entries, next.isEmpty ? null : next.first, selectedIds: next));
       _widgetAccountIds = next;
-    } catch (_) { error = '组件勾选保存失败，原选择未更改。'; }
+    } catch (_) { error = '账户勾选保存失败，原选择未更改。'; }
     finally { busy = false; _scheduleRefresh(); _emit(); }
   }
   Future<void> selectWidget(String id) async {
