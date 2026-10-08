@@ -9,6 +9,8 @@ import 'package:quota_hub/app_theme.dart';
 import 'package:quota_hub/desktop_accounts_store.dart';
 import 'package:quota_hub/desktop_dashboard.dart';
 import 'package:quota_hub/desktop_window.dart';
+import 'package:quota_hub/macos_menu_bar.dart';
+import 'macos_menu_test.dart' show MenuHost;
 
 class MemoryStore implements AccountsStore {
   String? data;
@@ -50,6 +52,28 @@ Future<ApiAccounts> manager(MemoryStore store) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets('macOS menu privacy, selections and click action share live dashboard state', (tester) async {
+    final accounts = await manager(MemoryStore());
+    final host = WindowHost(); final window = DesktopWindowController(host: host);
+    final menuHost = MenuHost(); final menu = MacMenuController(host: menuHost);
+    await tester.pumpWidget(MaterialApp(theme: AstracctTheme.light(), home: DesktopDashboard(accounts: accounts, window: window, menu: menu)));
+    await tester.pumpAndSettle();
+    expect(find.byType(DropdownButton<String>), findsOneWidget);
+    await menuHost.action!('selection', menu.choices.first.id);
+    await tester.pumpAndSettle();
+    expect(menuHost.updates.last['title'], '9.00 USD');
+    await tester.tap(find.byTooltip('隐藏金额')); await tester.pumpAndSettle();
+    expect(menuHost.updates.last['title'], '•••• USD');
+    await menuHost.action!('privacy', null); await tester.pumpAndSettle();
+    expect(menuHost.updates.last['title'], '9.00 USD');
+    await window.setFloating(true); await tester.pumpAndSettle();
+    await menuHost.action!('open', null); await tester.pumpAndSettle();
+    expect(window.floating, false);
+    expect(find.text('账户余额'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    menu.dispose(); window.dispose(); accounts.dispose();
+  });
+
   test('desktop vault and selected accounts round-trip; snapshot contains no credentials', () async {
     FlutterSecureStorage.setMockInitialValues({});
     final vault = DesktopAccountsStore();

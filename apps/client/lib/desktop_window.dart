@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'macos_menu_bar.dart';
 import 'package:window_manager/window_manager.dart';
 
 abstract interface class DesktopWindowHost {
@@ -40,7 +41,8 @@ class NativeDesktopWindow implements DesktopWindowHost {
   @override
   Future<void> drag() => windowManager.startDragging();
   @override
-  Future<void> close() => windowManager.close();
+  Future<void> close() => supportsMacMenuBar
+      ? macMenuChannel.invokeMethod<void>('quit') : windowManager.close();
 }
 
 class DesktopWindowController extends ChangeNotifier {

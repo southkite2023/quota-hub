@@ -20,6 +20,12 @@ if mac.is_dir() and (mac / 'Configs/AppInfo.xcconfig').exists():
         entitlements['com.apple.security.network.client'] = True
         # The desktop vault uses the legacy Keychain: no shared access group or provisioning profile.
         path.write_bytes(plistlib.dumps(entitlements))
+    (mac / 'MainFlutterWindow.swift').write_text((ROOT.parents[1] / 'scripts/macos/MainFlutterWindow.swift').read_text())
+    delegate = mac / 'AppDelegate.swift'
+    delegate_text, count = re.subn(r'(func applicationShouldTerminateAfterLastWindowClosed[^}]*return )(?:true|false)', r'\g<1>false', delegate.read_text())
+    if count != 1:
+        raise SystemExit('Expected macOS window-close termination override')
+    delegate.write_text(delegate_text)
     print('macOS identity and outbound network permission configured')
 
 windows = ROOT / 'windows'

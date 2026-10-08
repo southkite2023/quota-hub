@@ -9,11 +9,13 @@ import 'balance_summary.dart';
 import 'desktop_accounts_store.dart';
 import 'desktop_window.dart';
 import 'snapshot.dart';
+import 'macos_menu_bar.dart';
 
 class DesktopDashboard extends StatefulWidget {
-  const DesktopDashboard({super.key, this.accounts, this.window});
+  const DesktopDashboard({super.key, this.accounts, this.window, this.menu});
   final ApiAccounts? accounts;
   final DesktopWindowController? window;
+  final MacMenuController? menu;
   @override
   State<DesktopDashboard> createState() => _DesktopDashboardState();
 }
@@ -22,6 +24,17 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
   late final ApiAccounts _accounts = widget.accounts ?? ApiAccounts(store: DesktopAccountsStore());
   late final DesktopWindowController _window = widget.window ?? DesktopWindowController();
   bool _hideMoney = false;
+  late final MacMenuController? _menu = widget.menu ?? (supportsMacMenuBar ? MacMenuController() : null);
+
+  void _syncMenu() => _menu?.update(_accounts.accounts, hidden: _hideMoney, storageFailed: _accounts.storageFailed);
+  Future<void> _menuAction(String action, Object? value) async {
+    switch (action) {
+      case 'open': await _window.setFloating(false);
+      case 'refresh': if (_accounts.ready && !_accounts.busy && !_accounts.storageFailed) await _accounts.refresh();
+      case 'privacy': _togglePrivacy();
+      case 'selection': if (value is String) await _selectMenu(value);
+    }
+  }
 
   @override
   void initState() {
@@ -29,9 +42,15 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
     // Desktop focus changes must not stop polling while the floating window runs.
     _accounts.setForeground(true);
     if (!_accounts.ready) unawaited(_accounts.initialize());
+    _accounts.addListener(_syncMenu);
+    _menu?.addListener(_menuChanged);
+    if (_menu != null) unawaited(_menu!.initialize(_menuAction).then((_) => _syncMenu()));
   }
   @override
   void dispose() {
+    _accounts.removeListener(_syncMenu);
+    _menu?.removeListener(_menuChanged);
+    if (widget.menu == null) _menu?.dispose();
     if (widget.accounts == null) _accounts.dispose();
     else _accounts.setForeground(false);
     if (widget.window == null) _window.dispose();
@@ -42,7 +61,9 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
     await Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => AccountSettings(connection: _accounts, desktop: true)));
   }
-  void _togglePrivacy() => setState(() => _hideMoney = !_hideMoney);
+  void _togglePrivacy() { setState(() => _hideMoney = !_hideMoney); _syncMenu(); }
+  void _menuChanged() { if (mounted) setState(() {}); }
+  Future<void> _selectMenu(String id) async { await _menu?.select(id); _syncMenu(); }
 
   List<Account> get _selected => DemoCase.fromJson({
     ...jsonDecode(_accounts.widgetRaw) as Map<String, dynamic>, 'name': 'desktop',
@@ -75,6 +96,20 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
           icon: const Icon(Icons.picture_in_picture_alt_outlined), label: const Text('打开余额悬浮窗')),
       ]),
       const SizedBox(height: 16),
+      if (_menu != null) ...[
+        const Text('macOS 菜单栏 · 左键打开，右键切换余额；关闭窗口后继续刷新。'),
+        DropdownButton<String>(
+          isExpanded: true,
+          hint: const Text('菜单栏显示'),
+          value: _menu!.choices.any((c) => c.id == _menu!.selected) ? _menu!.selected : '',
+          items: [const DropdownMenuItem(value: '', child: Text('仅显示图标')),
+            for (final choice in _menu!.choices) DropdownMenuItem(value: choice.id, child: Text(choice.label, overflow: TextOverflow.ellipsis))],
+          onChanged: _menu!.ready ? (id) { if (id != null) unawaited(_selectMenu(id)); } : null,
+        ),
+        if (_menu!.error != null) Text(_menu!.error!, style: const TextStyle(color: AstracctTheme.error)),
+        OutlinedButton.icon(onPressed: () => _window.close(), icon: const Icon(Icons.power_settings_new), label: const Text('退出星账')),
+        const SizedBox(height: 12),
+      ],
       if (!_accounts.ready || _accounts.busy) const LinearProgressIndicator(),
       if (_accounts.error != null) Text(_accounts.error!, style: const TextStyle(color: AstracctTheme.error)),
       if (_window.error != null) Text(_window.error!, style: const TextStyle(color: AstracctTheme.error)),
