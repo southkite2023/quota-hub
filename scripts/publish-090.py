@@ -1,4 +1,4 @@
-import hashlib, json, os, pathlib, subprocess, zipfile, plistlib, struct
+import hashlib, json, os, pathlib, subprocess, zipfile, plistlib, struct, re
 root=pathlib.Path('release');root.mkdir()
 def api(path):
     return json.loads(subprocess.check_output(['gh','api',path]))
@@ -39,7 +39,8 @@ report=json.loads(pathlib.Path('android-release/apk-report.json').read_text())
 for item in report:
     src=pathlib.Path('android-release',item['file'])
     output=subprocess.check_output([str(build_tools/'apksigner'),'verify','--print-certs',str(src)],text=True)
-    assert 'Signer #1 certificate SHA-256 digest: '+cert in output
+    fingerprints={m.lower() for m in re.findall(r'Signer.*certificate SHA-256 digest: ([0-9a-fA-F]+)',output)}
+    assert fingerprints=={cert}, f'Certificate mismatch: {fingerprints}'
     name=item['file'].replace('quota-hub-','astracct-')
     (root/name).write_bytes(src.read_bytes());item['file']=name
 (root/'apk-report.json').write_text(json.dumps(report,indent=2)+'\n')
