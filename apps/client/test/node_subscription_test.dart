@@ -68,6 +68,18 @@ void main() {
     expect(result.accounts.single.metrics[3].state, MetricState.unknown);
   });
 
+  test('zero total is ambiguous and remains unknown instead of a fake zero', () async {
+    final api = BalanceApi(clientFactory: () => MockClient((_) async => http.Response('', 200,
+      headers: {'subscription-userinfo': 'upload=0; download=123; total=0; expire=0'})));
+    final result = DemoCase.fromJson({
+      ...await api.fetch(_subscription('https://sub.example/unlimited')), 'name': 'test',
+    });
+    expect(result.accounts.single.metrics[0].state, MetricState.unknown);
+    expect(result.accounts.single.metrics[1].value, '123');
+    expect(result.accounts.single.metrics[2].state, MetricState.unknown);
+    expect(result.accounts.single.metrics[3].state, MetricState.unknown);
+  });
+
   test('does not follow redirects or treat HTML subscriptions as zero', () async {
     for (final status in [301, 302, 401, 403, 429, 503]) {
       final api = BalanceApi(clientFactory: () => MockClient((r) async =>
