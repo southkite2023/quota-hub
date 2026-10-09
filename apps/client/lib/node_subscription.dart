@@ -18,7 +18,9 @@ Future<Map<String, dynamic>> fetchNodeSubscription(
 
   // The subscription body may contain private proxy/server configurations.
   // It is neither required for balance queries nor written to any snapshot.
-  await response.stream.listen((_) {}).cancel();
+  // Stop receiving the sensitive body immediately. Do not block the metadata
+  // result on asynchronous stream-cancellation teardown (notably in widget tests).
+  response.stream.listen((_) {}).cancel();
 
   if (response.statusCode == 401 || response.statusCode == 403) {
     throw const DeepSeekFailure('订阅链接无效、已撤销或无权访问。', 'unauthorized');
