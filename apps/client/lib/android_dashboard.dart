@@ -523,12 +523,20 @@ class MobileAccountCard extends StatelessWidget {
                 Theme(
                   data: Theme.of(context).copyWith(
                     textTheme: Theme.of(context).textTheme.copyWith(
-                      titleMedium: const TextStyle(
-                        fontSize: 28,
-                        height: 1.3,
-                        fontWeight: FontWeight.w600,
-                        color: AstracctTheme.ink,
-                      ),
+                      titleMedium: Theme.of(context).textTheme.bodyMedium!
+                          .copyWith(
+                            fontSize:
+                                {
+                                  'available',
+                                  'available_credit',
+                                  'month_spent',
+                                }.contains(metric.key)
+                                ? 28
+                                : 16,
+                            height: 1.3,
+                            fontWeight: FontWeight.w600,
+                            color: AstracctTheme.ink,
+                          ),
                     ),
                   ),
                   child: MetricLine(metric: metric, hideMoney: hideMoney),
