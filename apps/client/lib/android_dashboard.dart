@@ -533,6 +533,7 @@ class MobileAccountCard extends StatelessWidget {
                                   'available',
                                   'available_credit',
                                   'month_spent',
+                                  'remaining',
                                 }.contains(metric.key)
                                 ? 28
                                 : 16,

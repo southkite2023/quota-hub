@@ -6,6 +6,7 @@ import 'app_theme.dart';
 
 const _catalog = <({String id, String label, BalanceProvider? provider, String note})>[
   (id: 'deepseek', label: 'DeepSeek', provider: BalanceProvider.deepseek, note: 'API Key 查询可用、赠送与充值余额。'),
+  (id: 'subscription', label: '订阅链接 · 流量查询', provider: BalanceProvider.subscription, note: '适用于响应头提供 subscription-userinfo 的 HTTPS 订阅地址，可显示已用、剩余、总流量及到期日。订阅链接可能包含访问令牌，请妥善保管；不支持的服务商需另行适配。'),
   (id: 'siliconflow', label: '硅基流动 · 待适配', provider: null, note: '官方公告：原 /user/info 接口于 2026-08-14 停用。等待确认替代余额接口后启用。'),
   (id: 'openrouter', label: 'OpenRouter', provider: BalanceProvider.openrouter, note: '账户余额需要 Management Key；普通模型调用 Key 可能没有权限。显示购买额度减去已用额度（USD）。'),
   (id: 'aliyun', label: '阿里云 · 云账户余额', provider: BalanceProvider.aliyun, note: '查询阿里云中国站整个账户的可用额度和现金余额，含百炼等服务共用的费用账户；不是百炼专属额度。请使用仅授予余额查询权限的 RAM 用户 AccessKey（bss:DescribeAcccount），不要填写模型 API Key。'),
@@ -105,20 +106,23 @@ class _AccountEditorState extends State<AccountEditor> {
     final provider = _catalog.firstWhere((c) => c.id == _choice).provider;
     if (provider == null) return;
     final old = widget.account;
+    final subscription = provider == BalanceProvider.subscription;
     final custom = provider == BalanceProvider.custom || provider == BalanceProvider.oneapi;
-    final endpoint = custom ? _endpoint.text.trim().replaceFirst(RegExp(r'/+$'), '') : '';
+    final endpoint = subscription ? _endpoint.text.trim() : custom ? _endpoint.text.trim().replaceFirst(RegExp(r'/+$'), '') : '';
     final canReuse = old != null && old.provider == provider && old.endpoint == endpoint &&
       (!provider.isCloud || old.accessKeyId == _accessKeyId.text.trim());
     final candidate = ApiAccount(id: old?.id ?? 'account_${DateTime.now().microsecondsSinceEpoch}',
       category: _category, provider: provider, name: _name.text.trim().isEmpty ? provider.label : _name.text.trim(),
-      key: _key.text.trim().isEmpty && canReuse ? old.key : _key.text.trim(), endpoint: endpoint,
+      key: subscription ? '' : (_key.text.trim().isEmpty && canReuse ? old.key : _key.text.trim()), endpoint: endpoint,
       accessKeyId: provider.isCloud ? _accessKeyId.text.trim() : '',
       balancePath: _path.text.trim(), currency: _currency.text.trim().toUpperCase());
     try { candidate.validate(); } on DeepSeekFailure catch (failure) { setState(() => _error = failure.message); return; }
-    if (custom) {
+    if (custom || subscription) {
       final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(
         title: const Text('确认查询站点'),
-        content: Text('将向以下地址发送此账户的 Key：\n${candidate.uri}\n\n请确认这是你要连接的平台。'),
+        content: Text(subscription
+          ? '将向 ${candidate.uri.host} 请求订阅流量信息。订阅地址可能包含令牌，应用不会在此显示完整链接。请确认站点可信。'
+          : '将向以下地址发送此账户的 Key：\n${candidate.uri}\n\n请确认这是你要连接的平台。'),
         actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('验证连接'))],
       ));
@@ -139,6 +143,7 @@ class _AccountEditorState extends State<AccountEditor> {
     final cloud = choice.provider?.isCloud ?? false;
     final tencent = choice.provider == BalanceProvider.tencent;
     final oneapi = choice.provider == BalanceProvider.oneapi;
+    final subscription = choice.provider == BalanceProvider.subscription;
     return PopScope(canPop: !widget.connection.busy, child: Scaffold(
       appBar: AppBar(title: Text(widget.account == null ? '添加余额账户' : '编辑余额账户')),
       body: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -162,7 +167,7 @@ class _AccountEditorState extends State<AccountEditor> {
           }) : null),
         const SizedBox(height: 16),
         if (_category == BalanceCategory.nodes) ...[
-          const Text('节点订阅目前仅支持服务商提供的自定义余额接口，不支持直接解析订阅链接、流量或到期时间。'),
+          const Text('优先选择「订阅链接 · 流量查询」读取支持的订阅响应头；其他服务商仍可使用自定义余额接口。'),
           const SizedBox(height: 16),
         ],
         DropdownButtonFormField<String>(key: ValueKey(_category), initialValue: _choice, isExpanded: true,
@@ -176,15 +181,15 @@ class _AccountEditorState extends State<AccountEditor> {
         if (supported) ...[
           TextField(controller: _name, enabled: enabled, maxLength: 60, decoration: const InputDecoration(labelText: '账户名称', hintText: '例如：工作账户')),
           const SizedBox(height: 16),
-          if (custom || oneapi) ...[
+          if (custom || oneapi || subscription) ...[
             TextField(controller: _endpoint, enabled: enabled, autocorrect: false, keyboardType: TextInputType.url,
-              decoration: InputDecoration(labelText: oneapi ? '站点根地址' : '完整余额接口地址', hintText: oneapi ? 'https://你的站点' : 'https://你的平台/api/balance')),
+              decoration: InputDecoration(labelText: subscription ? 'HTTPS 订阅链接' : oneapi ? '站点根地址' : '完整余额接口地址', hintText: subscription ? 'https://example.com/subscribe?token=...' : oneapi ? 'https://你的站点' : 'https://你的平台/api/balance')),
             const SizedBox(height: 16),
             if (custom) ...[
               TextField(controller: _path, enabled: enabled, autocorrect: false, decoration: const InputDecoration(labelText: '余额字段路径', hintText: 'data.balance')),
               const SizedBox(height: 16),
             ],
-            TextField(controller: _currency, enabled: enabled, maxLength: 3, textCapitalization: TextCapitalization.characters,
+            if (!subscription) TextField(controller: _currency, enabled: enabled, maxLength: 3, textCapitalization: TextCapitalization.characters,
               decoration: const InputDecoration(labelText: '平台余额币种', helperText: '按平台实际单位填写，例如 USD 或 CNY')),
             const SizedBox(height: 16),
           ],
@@ -193,7 +198,7 @@ class _AccountEditorState extends State<AccountEditor> {
               decoration: InputDecoration(labelText: tencent ? 'SecretId' : 'AccessKey ID')),
             const SizedBox(height: 16),
           ],
-          TextField(controller: _key, enabled: enabled, obscureText: _obscure, autocorrect: false, enableSuggestions: false,
+          if (!subscription) TextField(controller: _key, enabled: enabled, obscureText: _obscure, autocorrect: false, enableSuggestions: false,
             keyboardType: TextInputType.visiblePassword,
             decoration: InputDecoration(labelText: cloud ? (tencent ? 'SecretKey' : 'AccessKey Secret') : choice.provider == BalanceProvider.openrouter ? 'Management Key' : choice.provider == BalanceProvider.openai ? 'Admin API Key' : 'API Key',
               helperText: widget.account == null ? (cloud ? 'Secret 仅用于本机签名，不随请求发送。暂不支持临时 STS 凭据。' : '仅向所选平台发送，查询账单不会调用模型。') : '留空保留原凭据；更换平台、地址或密钥 ID 后需重新输入。', helperMaxLines: 3,

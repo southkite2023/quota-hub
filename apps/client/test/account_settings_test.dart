@@ -48,6 +48,9 @@ void main() {
     await tester.tap(find.text('腾讯云 · 云账户余额')); await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<BalanceCategory>)); await tester.pumpAndSettle();
     await tester.tap(find.text('节点订阅').last); await tester.pumpAndSettle();
+    // Legacy node accounts still support custom JSON money endpoints.
+    await tester.tap(find.byType(DropdownButtonFormField<String>)); await tester.pumpAndSettle();
+    await tester.tap(find.text('其他 · 自定义余额接口').last); await tester.pumpAndSettle();
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), '节点账户');
     await tester.enterText(fields.at(1), 'https://example.com/balance');
@@ -62,6 +65,42 @@ void main() {
     await tester.tap(find.text('编辑')); await tester.pumpAndSettle();
     expect(tester.widget<DropdownButtonFormField<BalanceCategory>>(find.byType(DropdownButtonFormField<BalanceCategory>)).initialValue, BalanceCategory.nodes);
     manager.dispose(); reopened.dispose();
+  });
+
+  testWidgets('node subscription editor uses URL without asking for a separate API key', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final vault = MemoryVault();
+    final manager = ApiAccounts(store: vault, api: BalanceApi(clientFactory: () => MockClient((request) async {
+      expect(request.url.queryParameters['token'], 'private-token');
+      return http.Response('', 200, headers: {
+        'subscription-userinfo': 'upload=0; download=1; total=100; expire=0',
+      });
+    })));
+    await manager.initialize();
+    await tester.pumpWidget(MaterialApp(home: AccountSettings(connection: manager)));
+    await tester.tap(find.text('添加余额账户')); await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<BalanceCategory>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('节点订阅').last); await tester.pumpAndSettle();
+    expect(tester.widget<DropdownButtonFormField<String>>(
+      find.byType(DropdownButtonFormField<String>)).initialValue, 'subscription');
+    expect(find.byType(TextField), findsNWidgets(2));
+    await tester.enterText(find.byType(TextField).at(0), '我的节点');
+    await tester.enterText(find.byType(TextField).at(1), 'https://sub.example/subscribe?token=private-token');
+    await tester.ensureVisible(find.text('验证并保存'));
+    await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(AlertDialog), matching: find.textContaining('sub.example')), findsOneWidget);
+    expect(find.descendant(of: find.byType(AlertDialog), matching: find.textContaining('private-token')), findsNothing);
+    await tester.tap(find.text('验证连接')); await tester.pumpAndSettle();
+    for (var retry = 0; retry < 20 && manager.entries.isEmpty; retry++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(manager.entries.length, 1, reason: 'busy=${manager.busy}, error=${manager.error}');
+    expect(manager.entries.single.provider, BalanceProvider.subscription);
+    expect(manager.entries.single.category, BalanceCategory.nodes);
+    expect(manager.raw, isNot(contains('private-token')));
+    manager.dispose();
   });
 
   testWidgets('cloud editor hides saved secret and rejects reuse after ID changes', (tester) async {
