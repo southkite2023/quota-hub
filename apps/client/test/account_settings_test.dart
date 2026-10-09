@@ -93,6 +93,7 @@ void main() {
     expect(find.descendant(of: find.byType(AlertDialog), matching: find.textContaining('sub.example')), findsOneWidget);
     expect(find.descendant(of: find.byType(AlertDialog), matching: find.textContaining('private-token')), findsNothing);
     await tester.tap(find.text('验证连接')); await tester.pumpAndSettle();
+    expect(manager.entries.length, 1, reason: manager.error ?? 'account was not saved');
     expect(manager.entries.single.provider, BalanceProvider.subscription);
     expect(manager.entries.single.category, BalanceCategory.nodes);
     expect(manager.raw, isNot(contains('private-token')));
