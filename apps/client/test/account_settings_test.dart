@@ -90,7 +90,8 @@ void main() {
     await tester.enterText(find.byType(TextField).at(1), 'https://sub.example/subscribe?token=private-token');
     await tester.ensureVisible(find.text('验证并保存'));
     await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
-    expect(find.textContaining('sub.example'), findsOneWidget);
+    expect(find.descendant(of: find.byType(AlertDialog), matching: find.textContaining('sub.example')), findsOneWidget);
+    expect(find.descendant(of: find.byType(AlertDialog), matching: find.textContaining('private-token')), findsNothing);
     await tester.tap(find.text('验证连接')); await tester.pumpAndSettle();
     expect(manager.entries.single.provider, BalanceProvider.subscription);
     expect(manager.entries.single.category, BalanceCategory.nodes);
