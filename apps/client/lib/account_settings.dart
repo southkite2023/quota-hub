@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'api_accounts.dart';
 import 'refresh_settings.dart';
 import 'deepseek_connection.dart';
+import 'app_theme.dart';
 
 const _catalog = <({String id, String label, BalanceProvider? provider, String note})>[
   (id: 'deepseek', label: 'DeepSeek', provider: BalanceProvider.deepseek, note: 'API Key 查询可用、赠送与充值余额。'),
@@ -21,11 +22,20 @@ class AccountSettings extends StatelessWidget {
   final ApiAccounts connection;
   final bool desktop;
   void _edit(BuildContext context, [ApiAccount? account]) => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => AccountEditor(connection: connection, account: account)));
+    MaterialPageRoute<void>(builder: (_) => AccountEditor(connection: connection, account: account, desktop: desktop)));
   @override
   Widget build(BuildContext context) => ListenableBuilder(listenable: connection, builder: (context, _) => Scaffold(
-    appBar: AppBar(title: const Text('余额账户')),
+    appBar: AppBar(title: const Text('余额账户设置')),
     body: SafeArea(child: ListView(padding: const EdgeInsets.all(20), children: [
+      if (!desktop) ...[
+      Text('让余额井然有序', style: Theme.of(context).textTheme.headlineSmall),
+      const SizedBox(height: 8),
+      const Text('管理查询、账户和展示方式。', style: TextStyle(color: AstracctTheme.muted)),
+      const SizedBox(height: 20),
+      FilledButton.icon(onPressed: connection.ready && !connection.busy && !connection.storageFailed ? () => _edit(context) : null,
+        icon: const Icon(Icons.add), label: const Text('添加余额账户')),
+      const SizedBox(height: 20),
+      ],
       RefreshSettings(accounts: connection, desktop: desktop),
       const SizedBox(height: 16),
       const Text('多平台、多账户，余额分别显示。凭据在本机加密保存。'),
@@ -38,10 +48,10 @@ class AccountSettings extends StatelessWidget {
         TextButton(onPressed: connection.busy ? null : () => connection.selectAllWidgets(false), child: const Text('全部取消')),
       ]),
       if (connection.entries.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('尚未添加余额账户。选择余额种类和服务商，验证后即可查看余额。'))),
-      for (final account in connection.entries) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(
+      for (final account in connection.entries) Padding(padding: const EdgeInsets.only(bottom: 14), child: Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(
         crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(account.name, style: Theme.of(context).textTheme.titleMedium),
-          Text('${account.category.label} · ${account.provider.label}'),
+          Text('${account.category.label} · ${account.provider.label}', style: const TextStyle(color: AstracctTheme.muted)),
           if (connection.errors[account.id] != null) Text(connection.errors[account.id]!),
           CheckboxListTile(contentPadding: EdgeInsets.zero, title: Text(desktop ? '显示在悬浮窗' : '显示在桌面小组件'),
             value: connection.widgetAccountIds.contains(account.id),
@@ -59,8 +69,9 @@ class AccountSettings extends StatelessWidget {
             }, child: const Text('移除')),
           ]),
         ],
-      ))),
+      )))),
       const SizedBox(height: 16),
+      if (desktop)
       FilledButton.icon(onPressed: connection.ready && !connection.busy && !connection.storageFailed ? () => _edit(context) : null,
         icon: const Icon(Icons.add), label: const Text('添加余额账户')),
     ])),
@@ -68,9 +79,10 @@ class AccountSettings extends StatelessWidget {
 }
 
 class AccountEditor extends StatefulWidget {
-  const AccountEditor({super.key, required this.connection, this.account});
+  const AccountEditor({super.key, required this.connection, this.account, this.desktop = false});
   final ApiAccounts connection;
   final ApiAccount? account;
+  final bool desktop;
   @override
   State<AccountEditor> createState() => _AccountEditorState();
 }
@@ -129,9 +141,18 @@ class _AccountEditorState extends State<AccountEditor> {
     final oneapi = choice.provider == BalanceProvider.oneapi;
     return PopScope(canPop: !widget.connection.busy, child: Scaffold(
       appBar: AppBar(title: Text(widget.account == null ? '添加余额账户' : '编辑余额账户')),
-      body: SafeArea(child: ListView(padding: const EdgeInsets.all(24), children: [
+      body: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (!widget.desktop) ...[
+        Card(child: Padding(padding: const EdgeInsets.all(20), child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(widget.account == null ? '连接你的余额' : '更新账户连接', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            const Text('选择种类与服务商，验证成功后保存到本机。', style: TextStyle(color: AstracctTheme.muted)),
+          ]))),
+        const SizedBox(height: 24),
+        ],
         DropdownButtonFormField<BalanceCategory>(initialValue: _category, isExpanded: true,
-          decoration: const InputDecoration(labelText: '余额种类', border: OutlineInputBorder()),
+          decoration: const InputDecoration(labelText: '余额种类'),
           items: [for (final category in BalanceCategory.values) DropdownMenuItem(value: category, child: Text(category.label))],
           onChanged: enabled ? (value) => setState(() {
             _category = value!;
@@ -145,42 +166,45 @@ class _AccountEditorState extends State<AccountEditor> {
           const SizedBox(height: 16),
         ],
         DropdownButtonFormField<String>(key: ValueKey(_category), initialValue: _choice, isExpanded: true,
-          decoration: const InputDecoration(labelText: '服务商', border: OutlineInputBorder()),
+          decoration: const InputDecoration(labelText: '服务商'),
           items: [for (final item in _catalog.where((item) => item.provider == null ? _category == BalanceCategory.ai : _category.supports(item.provider!))) DropdownMenuItem(value: item.id, child: Text(item.label))],
           onChanged: enabled ? (value) => setState(() { _choice = value!; _key.clear(); _accessKeyId.clear(); _error = null; }) : null),
-        const SizedBox(height: 16), Text(choice.note), const SizedBox(height: 20),
+        const SizedBox(height: 16),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(choice.note,
+          style: const TextStyle(color: AstracctTheme.muted)))),
+        const SizedBox(height: 20),
         if (supported) ...[
-          TextField(controller: _name, enabled: enabled, maxLength: 60, decoration: const InputDecoration(labelText: '账户名称', hintText: '例如：工作账户', border: OutlineInputBorder())),
+          TextField(controller: _name, enabled: enabled, maxLength: 60, decoration: const InputDecoration(labelText: '账户名称', hintText: '例如：工作账户')),
           const SizedBox(height: 16),
           if (custom || oneapi) ...[
             TextField(controller: _endpoint, enabled: enabled, autocorrect: false, keyboardType: TextInputType.url,
-              decoration: InputDecoration(labelText: oneapi ? '站点根地址' : '完整余额接口地址', hintText: oneapi ? 'https://你的站点' : 'https://你的平台/api/balance', border: const OutlineInputBorder())),
+              decoration: InputDecoration(labelText: oneapi ? '站点根地址' : '完整余额接口地址', hintText: oneapi ? 'https://你的站点' : 'https://你的平台/api/balance')),
             const SizedBox(height: 16),
             if (custom) ...[
-              TextField(controller: _path, enabled: enabled, autocorrect: false, decoration: const InputDecoration(labelText: '余额字段路径', hintText: 'data.balance', border: OutlineInputBorder())),
+              TextField(controller: _path, enabled: enabled, autocorrect: false, decoration: const InputDecoration(labelText: '余额字段路径', hintText: 'data.balance')),
               const SizedBox(height: 16),
             ],
             TextField(controller: _currency, enabled: enabled, maxLength: 3, textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(labelText: '平台余额币种', helperText: '按平台实际单位填写，例如 USD 或 CNY', border: OutlineInputBorder())),
+              decoration: const InputDecoration(labelText: '平台余额币种', helperText: '按平台实际单位填写，例如 USD 或 CNY')),
             const SizedBox(height: 16),
           ],
           if (cloud) ...[
             TextField(controller: _accessKeyId, enabled: enabled, autocorrect: false, enableSuggestions: false,
-              decoration: InputDecoration(labelText: tencent ? 'SecretId' : 'AccessKey ID', border: const OutlineInputBorder())),
+              decoration: InputDecoration(labelText: tencent ? 'SecretId' : 'AccessKey ID')),
             const SizedBox(height: 16),
           ],
           TextField(controller: _key, enabled: enabled, obscureText: _obscure, autocorrect: false, enableSuggestions: false,
             keyboardType: TextInputType.visiblePassword,
             decoration: InputDecoration(labelText: cloud ? (tencent ? 'SecretKey' : 'AccessKey Secret') : choice.provider == BalanceProvider.openrouter ? 'Management Key' : choice.provider == BalanceProvider.openai ? 'Admin API Key' : 'API Key',
               helperText: widget.account == null ? (cloud ? 'Secret 仅用于本机签名，不随请求发送。暂不支持临时 STS 凭据。' : '仅向所选平台发送，查询账单不会调用模型。') : '留空保留原凭据；更换平台、地址或密钥 ID 后需重新输入。', helperMaxLines: 3,
-              border: const OutlineInputBorder(), suffixIcon: IconButton(tooltip: _obscure ? '显示 Key' : '隐藏 Key',
+              suffixIcon: IconButton(tooltip: _obscure ? '显示 Key' : '隐藏 Key',
                 onPressed: enabled ? () => setState(() => _obscure = !_obscure) : null,
                 icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined)))),
           const SizedBox(height: 20),
           if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
           FilledButton(onPressed: enabled ? _save : null, child: Text(widget.connection.busy ? '正在验证…' : '验证并保存')),
         ] else const Text('此项暂不收集 Key，也不会用演示数字冒充账户余额。'),
-      ])),
+      ]))),
     ));
   });
 }

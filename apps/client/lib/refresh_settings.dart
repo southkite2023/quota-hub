@@ -30,7 +30,7 @@ class RefreshSettings extends StatelessWidget {
       Text('自动刷新', style: Theme.of(context).textTheme.titleMedium),
       const SizedBox(height: 12),
       DropdownButtonFormField<int>(key: ValueKey(accounts.refreshMinutes), initialValue: accounts.refreshMinutes,
-        decoration: const InputDecoration(labelText: '刷新间隔', border: OutlineInputBorder()),
+        decoration: const InputDecoration(labelText: '刷新间隔'),
         items: [for (final value in {0, 1, 5, 15, 30, 60, accounts.refreshMinutes}.toList()..sort())
           DropdownMenuItem(value: value, child: Text(value == 0 ? '关闭自动刷新' : '每 $value 分钟'))],
         onChanged: accounts.busy || !accounts.ready || accounts.storageFailed ? null : (value) => accounts.setRefreshMinutes(value!)),

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import 'api_accounts.dart';
 import 'app_theme.dart';
+import 'android_dashboard.dart';
 import 'balance_summary.dart';
 import 'desktop_platform.dart';
 import 'desktop_dashboard.dart';
@@ -35,7 +36,8 @@ class QuotaHubApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         title: '星账 Astracct',
         debugShowCheckedModeBanner: false,
-        theme: AstracctTheme.light(),
+        theme: !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+            ? AstracctTheme.mobile() : AstracctTheme.light(),
         home: isDesktopClient ? const DesktopDashboard() : const Dashboard(),
       );
 }
@@ -52,6 +54,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   String _selected = 'overview';
   bool _hideMoney = false;
   String? _widgetAccountId;
+  int _widgetOpenSerial = 0;
   Account? _liveAccount;
   String? _liveRaw;
   String? _liveError;
@@ -93,6 +96,16 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       if (mounted) setState(() {});
       await _personal.refresh();
       await _personal.readBackgroundStatus();
+    }
+  }
+
+  void _toggleMoney() {
+    setState(() => _hideMoney = !_hideMoney);
+    if (_android) unawaited(_syncPersonalWidget());
+    if (_serverConfigured && _liveRaw != null) {
+      unawaited(WidgetBridge.showLiveSnapshot(_liveRaw!, hideMoney: _hideMoney));
+    } else if (!_android && !_serverConfigured) {
+      unawaited(WidgetBridge.showScenario(_selected, hideMoney: _hideMoney));
     }
   }
 
@@ -196,6 +209,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
     setState(() {
       _selected = scenario;
       _widgetAccountId = id;
+      _widgetOpenSerial++;
     });
     if (!_android && !_serverConfigured) unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
   }
@@ -209,7 +223,11 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => _android
+      ? AndroidDashboard(accounts: _personal, hideMoney: _hideMoney,
+          onToggleMoney: _toggleMoney, onSettings: _settings,
+          selectedAccountId: _widgetAccountId, widgetOpenSerial: _widgetOpenSerial, widgetError: _widgetError)
+      : Scaffold(
         appBar: AppBar(title: const Text('星账 Astracct'), actions: [
           IconButton(
             tooltip: _hideMoney ? '显示金额' : '隐藏金额',
