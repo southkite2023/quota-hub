@@ -1,0 +1,22 @@
+[
+  {
+    "file": "quota-hub-1.0.0-android.apk",
+    "bytes": 49588368,
+    "sha256": "74d264b882e5e887effd45e9587496b5aeb7622e9142ab07fca115f9a817bf85"
+  },
+  {
+    "file": "quota-hub-1.0.0-armeabi-v7a.apk",
+    "bytes": 14497515,
+    "sha256": "71d5ec76abadf68ae9d9d09e430a3d8ab4e8d4508485a7d2669bbb04f5f24d29"
+  },
+  {
+    "file": "quota-hub-1.0.0-arm64-v8a.apk",
+    "bytes": 17319653,
+    "sha256": "15b74698e1d94c3a9c5141ea307f49da4bb45daf96278b64d0ada4b54dc7a237"
+  },
+  {
+    "file": "quota-hub-1.0.0-x86_64.apk",
+    "bytes": 18736860,
+    "sha256": "df0a58e55108745b863b5a9db1a7920decda151899dedcaa26878891b71859e6"
+  }
+]

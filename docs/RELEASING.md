@@ -1,6 +1,6 @@
 # Android 安装包分发
 
-用户指定 GitHub Releases 为安装包下载入口。当前版本：0.10.0+13 多平台测试版。
+用户指定 GitHub Releases 为安装包下载入口。当前 Android 版本：1.0.0+14 UI 测试版；Windows/macOS：0.10.0+13。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
 - 0.8.0 发布后由 GitHub Releases 提供 ARM64、ARMv7、x86_64 与通用 APK。
@@ -57,3 +57,11 @@ Android applicationId 正式改为 `com.yuashie.astracct`，固定签名证书�
 [Release](https://github.com/southkite2023/quota-hub/releases/tag/v0.10.0) 已公开并设为 Latest，旧版本和附件保留。源码 `36120a8745a2f52235c9b5b0c7fe5c34a9785154`，原生运行 `37741806130`，客户端运行 `37741806102`，发布运行 `37742744027`。99 项测试与静态检查、各端构建和 macOS 菜单栏原生检查通过；发布前再次校验固定证书及 Android 0.10.0/versionCode 13、包名、AOT、ABI 和 16 KB 对齐。
 
 Android 签名 artifact `11534098591`，Windows `11534142932`，macOS `11534281870`；匹配 Android 符号 `11534760450`。桌面生产包在构建冒烟入口前归档，未把测试程序发布给用户。macOS Universal ZIP 覆盖 Intel + Apple Silicon，macOS 12+；未签名公证。真实用户设备、真实 API、长时间刷新仍待验收。成功后移除临时高权限发布工作流及脚本。公开安装包摘要见 [清单](reports/0.10.0-packages.json)。
+
+## 当前 Android 包：1.0.0+14 UI 测试版
+
+[v1.0.0 Release](https://github.com/southkite2023/quota-hub/releases/tag/v1.0.0) 已公开并设为 Latest。提供通用 `quota-hub-1.0.0-android.apk`、ARM64、ARMv7、x86_64 四种固定签名 APK，以及 SHA256SUMS.txt、apk-report.json 和 packages.json。Android UI 与 iOS PWA 统一，保留原有 API 查询、数据存储与后台/组件功能；Windows/macOS 公开下载保留 0.10.0。
+
+源码与标签 `1cbe0df37a191be8dbed935dc40f0464710549a5`，PR #16 已合并为 `080154dd83ff14e41719e71d5b9674fd40a9a53a`，两者源码树相同。客户端验证 `37865301884`、数据协议验证 `37865301931`、原生构建 `37865301946` 全部通过；105 项 Flutter 测试、静态检查、Web 与各端构建通过。固定签名产物 `11588405711`，发布运行 `37866860957` 再次校验摘要及 Android 包名、1.0.0/versionCode 14、固定证书、AOT、ABI、ZIP/ELF 16 KB 对齐后公开。
+
+ARM64 17,319,653 字节；通用 49,588,368 字节。实际公开包摘要见 [清单](reports/1.0.0-packages.json)。一次性高权限发布脚本和工作流成功后移除，旧版本及附件保留。真实 API、厂商真机覆盖更新和账户保留、小组件及长期后台行为待验收。
