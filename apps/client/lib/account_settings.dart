@@ -22,11 +22,12 @@ class AccountSettings extends StatelessWidget {
   final ApiAccounts connection;
   final bool desktop;
   void _edit(BuildContext context, [ApiAccount? account]) => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => AccountEditor(connection: connection, account: account)));
+    MaterialPageRoute<void>(builder: (_) => AccountEditor(connection: connection, account: account, desktop: desktop)));
   @override
   Widget build(BuildContext context) => ListenableBuilder(listenable: connection, builder: (context, _) => Scaffold(
     appBar: AppBar(title: const Text('余额账户设置')),
     body: SafeArea(child: ListView(padding: const EdgeInsets.all(20), children: [
+      if (!desktop) ...[
       Text('让余额井然有序', style: Theme.of(context).textTheme.headlineSmall),
       const SizedBox(height: 8),
       const Text('管理查询、账户和展示方式。', style: TextStyle(color: AstracctTheme.muted)),
@@ -34,6 +35,7 @@ class AccountSettings extends StatelessWidget {
       FilledButton.icon(onPressed: connection.ready && !connection.busy && !connection.storageFailed ? () => _edit(context) : null,
         icon: const Icon(Icons.add), label: const Text('添加余额账户')),
       const SizedBox(height: 20),
+      ],
       RefreshSettings(accounts: connection, desktop: desktop),
       const SizedBox(height: 16),
       const Text('多平台、多账户，余额分别显示。凭据在本机加密保存。'),
@@ -69,14 +71,18 @@ class AccountSettings extends StatelessWidget {
         ],
       )))),
       const SizedBox(height: 16),
+      if (desktop)
+      FilledButton.icon(onPressed: connection.ready && !connection.busy && !connection.storageFailed ? () => _edit(context) : null,
+        icon: const Icon(Icons.add), label: const Text('添加余额账户')),
     ])),
   ));
 }
 
 class AccountEditor extends StatefulWidget {
-  const AccountEditor({super.key, required this.connection, this.account});
+  const AccountEditor({super.key, required this.connection, this.account, this.desktop = false});
   final ApiAccounts connection;
   final ApiAccount? account;
+  final bool desktop;
   @override
   State<AccountEditor> createState() => _AccountEditorState();
 }
@@ -136,6 +142,7 @@ class _AccountEditorState extends State<AccountEditor> {
     return PopScope(canPop: !widget.connection.busy, child: Scaffold(
       appBar: AppBar(title: Text(widget.account == null ? '添加余额账户' : '编辑余额账户')),
       body: SafeArea(child: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (!widget.desktop) ...[
         Card(child: Padding(padding: const EdgeInsets.all(20), child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(widget.account == null ? '连接你的余额' : '更新账户连接', style: Theme.of(context).textTheme.titleLarge),
@@ -143,6 +150,7 @@ class _AccountEditorState extends State<AccountEditor> {
             const Text('选择种类与服务商，验证成功后保存到本机。', style: TextStyle(color: AstracctTheme.muted)),
           ]))),
         const SizedBox(height: 24),
+        ],
         DropdownButtonFormField<BalanceCategory>(initialValue: _category, isExpanded: true,
           decoration: const InputDecoration(labelText: '余额种类'),
           items: [for (final category in BalanceCategory.values) DropdownMenuItem(value: category, child: Text(category.label))],
