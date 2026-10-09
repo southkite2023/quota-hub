@@ -8,7 +8,7 @@ class BalanceSummary extends StatelessWidget {
   final bool hideMoney;
   @override
   Widget build(BuildContext context) {
-    final balances = account.metrics.where((m) => m.key == 'available' || m.key == 'available_credit' || m.key == 'month_spent').toList();
+    final balances = account.metrics.where((m) => {'available', 'available_credit', 'month_spent', 'remaining', 'used', 'total', 'expires_at'}.contains(m.key)).toList();
     return Card(color: AstracctTheme.accountSurface(account.provider), child: Padding(padding: const EdgeInsets.all(16), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(account.label, style: Theme.of(context).textTheme.titleMedium),
@@ -39,6 +39,8 @@ class MetricLine extends StatelessWidget {
       'voucher' => '代金券余额',
       'frozen' => '冻结余额',
       'remaining' => '剩余流量',
+      'used' => '已使用流量',
+      'total' => '套餐总流量',
       'expires_at' => '到期时间',
       _ => metric.key,
     };
