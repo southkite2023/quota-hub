@@ -52,7 +52,7 @@ void main() {
     await tester.enterText(fields.at(0), '节点账户');
     await tester.enterText(fields.at(1), 'https://example.com/balance');
     await tester.enterText(fields.last, 'node-secret');
-    await tester.ensureVisible(find.text('验证并保存'));
+    await tester.ensureVisible(find.text('验证并保存')); await tester.pumpAndSettle();
     await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
     await tester.tap(find.text('验证连接')); await tester.pumpAndSettle();
     expect(manager.entries.single.category, BalanceCategory.nodes);
@@ -79,13 +79,13 @@ void main() {
     expect(tester.widget<TextField>(fields.last).controller!.text, '');
     expect(tester.widget<TextField>(fields.last).obscureText, true);
     await tester.enterText(fields.at(1), 'changedId');
-    await tester.ensureVisible(find.text('验证并保存'));
+    await tester.ensureVisible(find.text('验证并保存')); await tester.pumpAndSettle();
     await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
     expect(requests, 1);
     expect(manager.entries.single.accessKeyId, 'fakeId');
     expect(find.textContaining('请填写完整的 Secret'), findsOneWidget);
     await tester.enterText(fields.last, 'newSecret');
-    await tester.ensureVisible(find.text('验证并保存'));
+    await tester.ensureVisible(find.text('验证并保存')); await tester.pumpAndSettle();
     await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
     expect(requests, 2);
     expect(manager.entries.single.accessKeyId, 'changedId');
@@ -103,7 +103,7 @@ void main() {
     await tester.enterText(find.byType(TextField).first, '工作 OpenRouter');
     await tester.enterText(find.byType(TextField).last, 'fake-management-key');
     expect(tester.widget<TextField>(find.byType(TextField).last).obscureText, true);
-    await tester.ensureVisible(find.text('验证并保存')); await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('验证并保存')); await tester.pumpAndSettle(); await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
     expect(manager.entries.single.provider, BalanceProvider.openrouter);
     expect(manager.entries.single.name, '工作 OpenRouter');
     expect(find.text('工作 OpenRouter'), findsOneWidget);
@@ -123,7 +123,7 @@ void main() {
       expect(find.byType(TextField), findsNWidgets(2));
       if (!isKimi && !isZhipu) expect(find.text('Admin API Key'), findsOneWidget);
       await tester.enterText(find.byType(TextField).last, 'fake-key');
-      await tester.ensureVisible(find.text('验证并保存'));
+      await tester.ensureVisible(find.text('验证并保存')); await tester.pumpAndSettle();
       await tester.tap(find.text('验证并保存')); await tester.pumpAndSettle();
       expect(manager.entries.single.provider, isKimi ? BalanceProvider.kimi : isZhipu ? BalanceProvider.zhipu : BalanceProvider.openai);
     });
