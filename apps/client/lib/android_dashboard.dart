@@ -21,12 +21,14 @@ class AndroidDashboard extends StatefulWidget {
     required this.onToggleMoney,
     required this.onSettings,
     this.selectedAccountId,
+    this.widgetOpenSerial = 0,
     this.widgetError,
   });
   final ApiAccounts accounts;
   final bool hideMoney;
   final VoidCallback onToggleMoney, onSettings;
   final String? selectedAccountId, widgetError;
+  final int widgetOpenSerial;
 
   @override
   State<AndroidDashboard> createState() => _AndroidDashboardState();
@@ -51,7 +53,8 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
   @override
   void didUpdateWidget(AndroidDashboard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedAccountId != widget.selectedAccountId) {
+    if (oldWidget.selectedAccountId != widget.selectedAccountId ||
+        oldWidget.widgetOpenSerial != widget.widgetOpenSerial) {
       _filter = null;
       _revealed = null;
     }

@@ -54,6 +54,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   String _selected = 'overview';
   bool _hideMoney = false;
   String? _widgetAccountId;
+  int _widgetOpenSerial = 0;
   Account? _liveAccount;
   String? _liveRaw;
   String? _liveError;
@@ -208,6 +209,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
     setState(() {
       _selected = scenario;
       _widgetAccountId = id;
+      _widgetOpenSerial++;
     });
     if (!_android && !_serverConfigured) unawaited(WidgetBridge.showScenario(scenario, hideMoney: _hideMoney));
   }
@@ -224,7 +226,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   Widget build(BuildContext context) => _android
       ? AndroidDashboard(accounts: _personal, hideMoney: _hideMoney,
           onToggleMoney: _toggleMoney, onSettings: _settings,
-          selectedAccountId: _widgetAccountId, widgetError: _widgetError)
+          selectedAccountId: _widgetAccountId, widgetOpenSerial: _widgetOpenSerial, widgetError: _widgetError)
       : Scaffold(
         appBar: AppBar(title: const Text('星账 Astracct'), actions: [
           IconButton(

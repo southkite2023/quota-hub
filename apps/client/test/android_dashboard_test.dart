@@ -79,26 +79,29 @@ Future<ApiAccounts> manager([Vault? vault]) async {
   return accounts;
 }
 
-Widget app(ApiAccounts accounts, {double scale = 1, String? selected}) =>
-    MaterialApp(
-      theme: AstracctTheme.mobile(),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(scale)),
-        child: child!,
-      ),
-      home: ListenableBuilder(
-        listenable: accounts,
-        builder: (context, _) => AndroidDashboard(
-          accounts: accounts,
-          hideMoney: false,
-          selectedAccountId: selected,
-          onToggleMoney: () {},
-          onSettings: () {},
-        ),
-      ),
-    );
+Widget app(
+  ApiAccounts accounts, {
+  double scale = 1,
+  String? selected,
+  int openSerial = 0,
+}) => MaterialApp(
+  theme: AstracctTheme.mobile(),
+  builder: (context, child) => MediaQuery(
+    data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+    child: child!,
+  ),
+  home: ListenableBuilder(
+    listenable: accounts,
+    builder: (context, _) => AndroidDashboard(
+      accounts: accounts,
+      hideMoney: false,
+      selectedAccountId: selected,
+      widgetOpenSerial: openSerial,
+      onToggleMoney: () {},
+      onSettings: () {},
+    ),
+  ),
+);
 
 void main() {
   testWidgets(
@@ -213,6 +216,13 @@ void main() {
       tester.getRect(target).overlaps(Offset.zero & tester.view.physicalSize),
       true,
     );
+    await tester.ensureVisible(find.widgetWithText(ChoiceChip, '节点订阅'));
+    await tester.tap(find.widgetWithText(ChoiceChip, '节点订阅'));
+    await tester.pumpAndSettle();
+    expect(target, findsNothing);
+    await tester.pumpWidget(app(accounts, selected: 'work_usd', openSerial: 1));
+    await tester.pumpAndSettle();
+    expect(target, findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
