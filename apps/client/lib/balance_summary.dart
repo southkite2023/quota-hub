@@ -44,7 +44,9 @@ class MetricLine extends StatelessWidget {
       'expires_at' => '到期时间',
       _ => metric.key,
     };
-    final status = switch (metric.state) {
+    final expired = metric.kind == 'expiry' && metric.state == MetricState.ok &&
+        metric.value != null && !DateTime.parse(metric.value!).isAfter(DateTime.now());
+    final status = expired ? '已过期' : switch (metric.state) {
       MetricState.ok => '正常',
       MetricState.unknown => '未知',
       MetricState.stale => '缓存已过期',
@@ -56,7 +58,7 @@ class MetricLine extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Expanded(child: Text(label, style: Theme.of(context).textTheme.bodySmall)),
-        Text(status, style: TextStyle(color: switch (metric.state) {
+        Text(status, style: TextStyle(color: expired ? AstracctTheme.error : switch (metric.state) {
           MetricState.ok => AstracctTheme.success,
           MetricState.unknown => AstracctTheme.muted,
           MetricState.stale => AstracctTheme.warning,
