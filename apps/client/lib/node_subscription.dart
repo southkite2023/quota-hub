@@ -63,6 +63,8 @@ Future<Map<String, dynamic>> fetchNodeSubscription(
     final total = bytes('total');
     final used = upload + download;
     final remaining = total > used ? total - used : BigInt.zero;
+    // Some providers use total=0 to mean unlimited, so no known remaining quota can be inferred.
+    final totalKnown = total > BigInt.zero;
 
     DateTime? expiry;
     final expiryRaw = fields['expire'];
@@ -87,9 +89,11 @@ Future<Map<String, dynamic>> fetchNodeSubscription(
         'label': name,
         'lastSuccessAt': timestamp,
         'metrics': [
-          {'key': 'remaining', 'kind': 'traffic', 'state': 'ok', 'value': remaining.toString(), 'unit': 'byte'},
+          {'key': 'remaining', 'kind': 'traffic', 'state': totalKnown ? 'ok' : 'unknown',
+            'value': totalKnown ? remaining.toString() : null, 'unit': 'byte'},
           {'key': 'used', 'kind': 'traffic', 'state': 'ok', 'value': used.toString(), 'unit': 'byte'},
-          {'key': 'total', 'kind': 'traffic', 'state': 'ok', 'value': total.toString(), 'unit': 'byte'},
+          {'key': 'total', 'kind': 'traffic', 'state': totalKnown ? 'ok' : 'unknown',
+            'value': totalKnown ? total.toString() : null, 'unit': 'byte'},
           {'key': 'expires_at', 'kind': 'expiry', 'state': expiry == null ? 'unknown' : 'ok',
             'value': expiry?.toIso8601String(), 'unit': 'datetime'},
         ],
