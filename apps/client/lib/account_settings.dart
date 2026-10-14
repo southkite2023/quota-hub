@@ -182,8 +182,18 @@ class _AccountEditorState extends State<AccountEditor> {
           TextField(controller: _name, enabled: enabled, maxLength: 60, decoration: const InputDecoration(labelText: '账户名称', hintText: '例如：工作账户')),
           const SizedBox(height: 16),
           if (custom || oneapi || subscription) ...[
-            TextField(controller: _endpoint, enabled: enabled, autocorrect: false, keyboardType: TextInputType.url,
-              decoration: InputDecoration(labelText: subscription ? 'HTTPS 订阅链接' : oneapi ? '站点根地址' : '完整余额接口地址', hintText: subscription ? 'https://example.com/subscribe?token=...' : oneapi ? 'https://你的站点' : 'https://你的平台/api/balance')),
+            TextField(controller: _endpoint, enabled: enabled, autocorrect: false, enableSuggestions: false,
+              obscureText: subscription && _obscure, keyboardType: subscription ? TextInputType.visiblePassword : TextInputType.url,
+              decoration: InputDecoration(
+                labelText: subscription ? 'HTTPS 订阅链接' : oneapi ? '站点根地址' : '完整余额接口地址',
+                hintText: subscription ? '粘贴 Clash / 小火箭的 HTTPS 订阅链接' : oneapi ? 'https://你的站点' : 'https://你的平台/api/balance',
+                helperText: subscription ? '完整链接仅存于本机安全存储，默认隐藏令牌。' : null,
+                suffixIcon: subscription ? IconButton(
+                  tooltip: _obscure ? '显示订阅链接' : '隐藏订阅链接',
+                  onPressed: enabled ? () => setState(() => _obscure = !_obscure) : null,
+                  icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                ) : null,
+              )),
             const SizedBox(height: 16),
             if (custom) ...[
               TextField(controller: _path, enabled: enabled, autocorrect: false, decoration: const InputDecoration(labelText: '余额字段路径', hintText: 'data.balance')),
