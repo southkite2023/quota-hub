@@ -1,6 +1,6 @@
 # Android 安装包分发
 
-用户指定 GitHub Releases 为安装包下载入口。当前 Android 版本：1.0.0+14 UI 测试版；Windows/macOS：0.10.0+13。
+用户指定 GitHub Releases 为安装包下载入口。当前公开下载：Android 1.0.0+14 UI 测试版；Windows 0.10.0+13；macOS 1.1.0+15 节点订阅测试版（未签名公证）。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
 - 0.8.0 发布后由 GitHub Releases 提供 ARM64、ARMv7、x86_64 与通用 APK。
