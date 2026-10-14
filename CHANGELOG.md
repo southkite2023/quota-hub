@@ -4,7 +4,7 @@
 
 ## 1.1.0 — 2026-10-14
 
-类型：节点订阅功能扩展。状态：开发候选版，未公开发布；客户端配置 `1.1.0+15`。
+类型：节点订阅功能扩展。状态：**macOS 测试版已公开发布**，Android 1.1.0 暂未公开；客户端源码配置 `1.1.0+15`。
 
 ### 新增
 
@@ -12,6 +12,12 @@
 - 节点账户允许带查询令牌的 HTTPS 订阅链接，保存至现有本机加密账户库；确认弹窗只显示主机名。请求禁止跨站跳转并取消订阅正文下载。
 - Android 首页和桌面账户摘要展示新增的流量及到期指标；旧的「自定义余额接口」节点账户仍可使用。
 - macOS 顶部菜单栏现在可以直接选择节点剩余、已用、总流量或到期时间；订阅 URL 输入框默认隐藏，防止复制后意外展示 Token。
+
+### macOS 1.1.0 发布（2026-10-14）
+
+- [GitHub Release v1.1.0](https://github.com/southkite2023/quota-hub/releases/tag/v1.1.0) 已上传 `astracct-1.1.0-macos-universal.zip`（19,973,156 字节）和 `SHA256SUMS.txt`，作为 macOS-only 预发布版本。ZIP SHA-256：`3c60a25efb8e8a1cef391c7d7e630d17cc8cbaeff8b6285e57458dcf073788ae`。
+- 源码 `5cdcd7feb0c24f2bd64aab23d1e87b2a495043e0`；原生发布运行 [38507591784](https://github.com/southkite2023/quota-hub/actions/runs/38507591784) 的 Flutter 分析、测试、生产 macOS 构建、Intel/Apple Silicon 双架构、bundle ID/版本号及菜单栏+Keychain 冒烟检查通过。发布命令成功上传 Release 和两份附件；随后的 `gh release view --json htmlUrl` 因该 GitHub CLI 不支持 `htmlUrl` 字段返回错误，令整次运行最终显示失败，但公开 Release 已由 GitHub API 独立确认。发布包不受此后验命令影响；一次性发布流程应移除，以防重复执行。
+- macOS 暂无 Apple Developer 分发签名与公证，真实机场服务商订阅、用户 Mac 的首次打开及长期使用尚未验收。Android 公开下载依旧为 1.0.0，Windows 为 0.10.0。
 
 ### 验证与限制
 
