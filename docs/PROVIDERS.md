@@ -15,6 +15,14 @@
 | OpenAI | 已实现费用查询，余额未知；真实账户待验收 | 组织 Admin API Key；`GET /v1/organization/costs`；UTC 本月截至查询时刻的 USD 费用，完整处理分页；余额固定显示未知 |
 | 自定义 | 已实现有限格式 | HTTPS GET + Authorization Bearer，JSON 字段路径（如 `data.balance`）和币种；平台必须实际提供相应余额接口 |
 
+## 节点订阅（1.1.0+15 开发候选）
+
+- 「余额种类：节点订阅」可以选择「订阅链接 · 流量查询」，填写可信服务商提供的完整 HTTPS 订阅链接。链接可能带有查询参数令牌；只在本机加密账户配置中保存，确认弹窗仅显示主机名。无需另外填写 API Key。
+- 客户端使用 GET，请求不跟随 30x 跳转，不下载或解析订阅正文，不把节点/代理服务器信息持久化。解析 `subscription-userinfo` 或 `x-subscription-userinfo` 头中的 `upload`、`download`、`total`（字节）和可选 `expire`（Unix 秒）。剩余流量按 `max(total-upload-download,0)` 计算；过期时间缺失或为 0 显示未知。
+- 响应头缺失、HTTP 错误、字段异常时明确失败，不将流量解释为货币或假定为零；刷新失败保持先前快照并标注过期。
+- 并非所有 VPN/机场都暴露此协议：只返回订阅正文、需要 Cookie/登录会话、使用供应商私有 API 的订阅暂不支持；没有统一的人民币账户余额接口。Flutter Web/iOS PWA 读取自定义响应头还受到 CORS/Access-Control-Expose-Headers 限制，尚未实现受信任的后端代理。
+- 本功能为尚未发布、尚未通过真实订阅及设备验收的开发候选。不要将真实链接、Token 或节点配置粘贴进公开 Issue、聊天或日志。
+
 ## 依据
 
 - [DeepSeek 余额](https://api-docs.deepseek.com/zh-cn/api/get-user-balance/)

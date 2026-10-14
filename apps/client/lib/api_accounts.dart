@@ -11,8 +11,9 @@ import 'snapshot.dart';
 import 'aliyun_balance.dart';
 import 'tencent_balance.dart';
 import 'openai_costs.dart';
+import 'node_subscription.dart';
 
-enum BalanceProvider { deepseek, openrouter, oneapi, custom, aliyun, tencent, kimi, openai, zhipu }
+enum BalanceProvider { deepseek, openrouter, oneapi, custom, aliyun, tencent, kimi, openai, zhipu, subscription }
 
 enum BalanceCategory { ai, cloud, nodes }
 
@@ -24,9 +25,9 @@ extension CategoryLabel on BalanceCategory {
   };
   bool supports(BalanceProvider provider) => provider == BalanceProvider.custom ||
     switch (this) {
-      BalanceCategory.ai => !provider.isCloud,
+      BalanceCategory.ai => !provider.isCloud && provider != BalanceProvider.subscription,
       BalanceCategory.cloud => provider.isCloud,
-      BalanceCategory.nodes => false,
+      BalanceCategory.nodes => provider == BalanceProvider.subscription,
     };
 }
 
@@ -42,6 +43,7 @@ extension ProviderLabel on BalanceProvider {
     BalanceProvider.kimi => 'Kimi（国内站）',
     BalanceProvider.zhipu => '智谱 · 实验性余额',
     BalanceProvider.openai => 'OpenAI · 本月费用',
+    BalanceProvider.subscription => '订阅链接 · 流量查询',
   };
 }
 
@@ -61,7 +63,7 @@ class ApiAccount {
     BalanceProvider.aliyun => Uri.https('business.aliyuncs.com', '/'),
     BalanceProvider.deepseek => Uri.https('api.deepseek.com', '/user/balance'),
     BalanceProvider.openrouter => Uri.https('openrouter.ai', '/api/v1/credits'),
-    BalanceProvider.oneapi || BalanceProvider.custom => Uri.parse(endpoint),
+    BalanceProvider.oneapi || BalanceProvider.custom || BalanceProvider.subscription => Uri.parse(endpoint),
   };
   void validate() {
     if (!category.supports(provider)) {
@@ -73,8 +75,17 @@ class ApiAccount {
     if (provider.isCloud && !RegExp(r'^[A-Za-z0-9]{1,128}$').hasMatch(accessKeyId)) {
       throw const DeepSeekFailure('请填写有效的 AccessKey ID / SecretId。', 'unauthorized');
     }
-    if (key.isEmpty || key.length > 4096 || RegExp(r'\s|[^\x21-\x7E]').hasMatch(key)) {
+    if (provider != BalanceProvider.subscription && (key.isEmpty || key.length > 4096 || RegExp(r'\s|[^\x21-\x7E]').hasMatch(key))) {
       throw DeepSeekFailure(provider.isCloud ? '请填写完整的 Secret，不要包含空格或换行。' : '请填写完整 API Key，不要包含空格或换行。', 'unauthorized');
+    }
+    if (provider == BalanceProvider.subscription) {
+      final target = Uri.tryParse(endpoint);
+      // Subscription URLs commonly carry access tokens in query parameters.
+      if (target == null || target.scheme != 'https' || target.host.isEmpty ||
+          target.userInfo.isNotEmpty || target.hasFragment ||
+          endpoint.length > 4096 || RegExp(r'\s').hasMatch(endpoint)) {
+        throw const DeepSeekFailure('请填写有效的 HTTPS 订阅地址，不包含账号密码、空格或片段。', 'provider_unavailable');
+      }
     }
     if (provider == BalanceProvider.custom || provider == BalanceProvider.oneapi) {
       final target = Uri.tryParse(endpoint);
@@ -162,6 +173,10 @@ class BalanceApi {
       if (account.provider == BalanceProvider.tencent) return await fetchTencentBalance(client, account);
       if (account.provider == BalanceProvider.aliyun) return await fetchAliyunBalance(client, account);
       if (account.provider == BalanceProvider.oneapi) return await _oneApi(client, account);
+      if (account.provider == BalanceProvider.subscription) {
+        return await fetchNodeSubscription(client, id: account.id, name: account.name,
+          endpoint: account.uri, now: _now().toUtc());
+      }
       if (account.provider == BalanceProvider.openai) return await fetchOpenAiCosts(client, account, _now().toUtc());
       final request = http.Request('GET', account.uri)..followRedirects = false
         ..headers.addAll({'Authorization': account.provider == BalanceProvider.zhipu ? account.key : 'Bearer ${account.key}', 'Accept': 'application/json'});
@@ -369,6 +384,14 @@ class ApiAccounts extends ChangeNotifier {
     'accounts': [for (final entry in _entries.where((e) => _widgetAccountIds.contains(e.id)))
       ...((_snapshots[entry.id] ?? _empty(entry))['accounts'] as List)]});
   Map<String, dynamic> _empty(ApiAccount entry) {
+    if (entry.provider == BalanceProvider.subscription) {
+      return {'schemaVersion': 1, 'generatedAt': _now().toUtc().toIso8601String(), 'accounts': [{
+        'id': '${entry.id}_byte', 'provider': 'subscription', 'label': entry.name,
+        'lastSuccessAt': null, 'metrics': [
+          {'key': 'remaining', 'kind': 'traffic', 'state': 'unknown', 'value': null, 'unit': 'byte'},
+        ],
+      }]};
+    }
     final currency = (entry.provider == BalanceProvider.deepseek || entry.provider == BalanceProvider.kimi || entry.provider == BalanceProvider.zhipu || entry.provider.isCloud) ? 'CNY' : (entry.provider == BalanceProvider.openrouter || entry.provider == BalanceProvider.openai) ? 'USD' : entry.currency;
     return {'schemaVersion': 1, 'generatedAt': DateTime.now().toUtc().toIso8601String(), 'accounts': [{
       'id': '${entry.id}_${currency.toLowerCase()}', 'provider': entry.provider.name,

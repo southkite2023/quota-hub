@@ -19,15 +19,21 @@ class MenuBalance {
     'month_spent' => '本月费用（UTC）', 'available_credit' => '可用额度',
     'cash_balance' || 'cash' => '现金余额', 'bonus' => '赠送余额',
     'voucher' => '代金券余额', 'frozen' => '冻结余额',
-    'spent' => '已用额度', 'purchased' => '累计购买额度', _ => '可用余额',
+    'spent' => '已用额度', 'purchased' => '累计购买额度',
+    'remaining' => '剩余流量', 'used' => '已使用流量', 'total' => '套餐总流量',
+    'expires_at' => '到期时间', _ => '可用余额',
   };
   String get label => '${account.label} · $kind';
   String value(bool hidden) {
-    final value = hidden && metric.value != null ? '•••• ${metric.unit}' : metric.displayValue;
+    final value = hidden && metric.value != null
+        ? (metric.kind == 'money' ? '•••• ${metric.unit}' : '••••')
+        : metric.displayValue;
+    final subscriptionExpired = metric.kind == 'expiry' && metric.value != null &&
+        metric.state == MetricState.ok && !DateTime.parse(metric.value!).isAfter(DateTime.now());
     final prefix = switch (metric.state) {
       MetricState.stale => '过期 ', MetricState.error => '失败 ', _ => '',
     };
-    return '${metricKey == 'month_spent' ? '费用 ' : ''}$prefix$value';
+    return '${metricKey == 'month_spent' ? '费用 ' : ''}${subscriptionExpired ? '已到期 ' : ''}$prefix$value';
   }
 }
 
@@ -79,7 +85,8 @@ class MacMenuController extends ChangeNotifier {
   }
   void update(List<Account> accounts, {required bool hidden, bool storageFailed = false}) {
     choices = [for (final account in accounts) for (final metric in account.metrics)
-      if (metric.kind == 'money') MenuBalance(account, metric)];
+      if (metric.kind == 'money' || metric.kind == 'traffic' || metric.kind == 'expiry')
+        MenuBalance(account, metric)];
     final match = choices.where((c) => c.id == selected).firstOrNull;
     // Deleted accounts never leave a stale number visible. Keep the ID to restore after vault recovery.
     final title = storageFailed ? '存储异常' : selected.isEmpty ? '' : match?.value(hidden) ?? '未选择';
