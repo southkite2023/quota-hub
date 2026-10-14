@@ -86,6 +86,8 @@ void main() {
     expect(tester.widget<DropdownButtonFormField<String>>(
       find.byType(DropdownButtonFormField<String>)).initialValue, 'subscription');
     expect(find.byType(TextField), findsNWidgets(2));
+    expect(tester.widget<TextField>(find.byType(TextField).at(1)).obscureText, true);
+    expect(find.byTooltip('显示订阅链接'), findsOneWidget);
     await tester.enterText(find.byType(TextField).at(0), '我的节点');
     await tester.enterText(find.byType(TextField).at(1), 'https://sub.example/subscribe?token=private-token');
     await tester.ensureVisible(find.text('验证并保存'));
