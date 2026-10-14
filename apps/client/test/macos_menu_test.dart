@@ -83,6 +83,34 @@ void main() {
     expect(host.updates.last['title'], '费用 4.00 USD');
     menu.dispose();
   });
+  test('subscription traffic and expiry can be selected in macOS menu bar', () async {
+    final host = MenuHost();
+    final menu = MacMenuController(host: host);
+    await menu.initialize((_, _) async {});
+    final subscription = Account(
+      id: 'node_byte', provider: 'subscription', label: '我的节点',
+      lastSuccessAt: DateTime.utc(2026, 10, 14),
+      metrics: const [
+        Metric(key: 'remaining', kind: 'traffic', state: MetricState.ok, value: '5368709120', unit: 'byte'),
+        Metric(key: 'used', kind: 'traffic', state: MetricState.ok, value: '1073741824', unit: 'byte'),
+        Metric(key: 'total', kind: 'traffic', state: MetricState.ok, value: '6442450944', unit: 'byte'),
+        Metric(key: 'expires_at', kind: 'expiry', state: MetricState.unknown, value: null, unit: 'datetime'),
+      ],
+    );
+    menu.update([subscription], hidden: false); await flush();
+    expect(menu.choices.map((c) => c.kind).toList(),
+        ['剩余流量', '已使用流量', '套餐总流量', '到期时间']);
+    await menu.select(menu.choices.first.id);
+    menu.update([subscription], hidden: false); await flush();
+    expect(host.updates.last['title'], '5.00 GiB');
+    expect(host.updates.last['tooltip'].toString(), contains('剩余流量'));
+    menu.update([subscription], hidden: true); await flush();
+    expect(host.updates.last['title'], '••••');
+    await menu.select(menu.choices.last.id);
+    menu.update([subscription], hidden: false); await flush();
+    expect(host.updates.last['title'], '未知');
+    menu.dispose();
+  });
   test('native updates are serialized and recover on the next account refresh', () async {
     final host = MenuHost()..block = Completer<void>(); final menu = MacMenuController(host: host);
     await menu.initialize((_, _) async {});
