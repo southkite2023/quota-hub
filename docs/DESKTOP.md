@@ -48,7 +48,9 @@ macOS：解压 ZIP 后打开 `Astracct.app`；此包未进行 Apple Developer �
 
 发布核验运行 `37742744027`；Netweb PR #6 合并 `ba5a1d57c939fcffeac9383a7e4b3775613dba9c`，部署运行 `37743281745` 成功且公网版本一致。候选清单保留原文件名用于追溯，公开文件名与校验值以 Release packages.json / SHA256SUMS.txt 为准。真实账户验证、人工拖动、跨显示器/DPI、长期刷新与用户机器安装尚待验收；不宣称已完成。
 
-## 1.1.0+15 节点订阅 macOS 预览版（2026-10-14）
+## 1.1.0+15 节点订阅 macOS 预览版（2026-10-14，已发布）
+
+[GitHub Release v1.1.0](https://github.com/southkite2023/quota-hub/releases/tag/v1.1.0) 提供 `astracct-1.1.0-macos-universal.zip` 与 SHA256SUMS。双架构生产包经 CI 验证（检查、菜单栏、Keychain 冒烟），尚未 Apple 公证或用户实机验收。
 
 - 在「管理 / 添加余额账户」中选择「节点订阅」→「订阅链接 · 流量查询」，粘贴给 Clash / Shadowrocket 的 **HTTPS 订阅链接**（可包含 URL 查询令牌），确认域名后验证保存。链接在输入框中默认隐藏，保存在当前 Mac 的安全账户库（Keychain）；无需单独输入 API Key。
 - 服务商响应头含 `subscription-userinfo` 或 `x-subscription-userinfo`，且提供 `upload`、`download`、`total` 时显示剩余/使用/总流量（GiB），可选 `expire` 秒级 Unix 时间戳显示到期日期。菜单栏可以单选显示上述任一项；悬浮窗可显示节点账户。默认保留“仅图标”模式。
