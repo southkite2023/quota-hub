@@ -22,6 +22,12 @@ if mac.is_dir() and (mac / 'Configs/AppInfo.xcconfig').exists():
         entitlements['com.apple.security.app-sandbox'] = False
         # The desktop vault uses the legacy Keychain: no shared access group or provisioning profile.
         path.write_bytes(plistlib.dumps(entitlements))
+    # Flutter 3.47's macOS Impeller surface cache can crash on floating-window resize.
+    # Keep the supported Skia fallback for this pinned SDK (docs.flutter.dev/perf/impeller).
+    plist_path = mac / 'Info.plist'
+    info_plist = plistlib.loads(plist_path.read_bytes())
+    info_plist['FLTEnableImpeller'] = False
+    plist_path.write_bytes(plistlib.dumps(info_plist))
     (mac / 'MainFlutterWindow.swift').write_text((ROOT.parents[1] / 'scripts/macos/MainFlutterWindow.swift').read_text())
     (mac / 'AppDelegate.swift').write_text((ROOT.parents[1] / 'scripts/macos/AppDelegate.swift').read_text())
     print('macOS identity and outbound network permission configured')
