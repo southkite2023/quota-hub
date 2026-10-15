@@ -1,0 +1,60 @@
+name: Verify installers and publish Astracct 1.3.0 testing release
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-130.yml, scripts/prepare-130.py]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: publish-astracct-130
+  cancel-in-progress: false
+jobs:
+  windows-update:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact verified Windows candidate
+        run: python scripts/prepare-130.py --only windows
+      - name: Exercise replacement, restart and rollback using Windows PowerShell
+        shell: pwsh
+        run: ./scripts/test-update-windows.ps1 -CandidateZip "$PWD/release/astracct-1.3.0-windows-x64.zip" -Installer "$PWD/apps/client/assets/updater/install.ps1"
+  macos-update:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact verified macOS candidate
+        run: python3 scripts/prepare-130.py --only macos
+      - name: Exercise bundle replacement, restart and rollback
+        run: python3 scripts/test-update-macos.py release/astracct-1.3.0-macos-universal.zip apps/client/assets/updater/install.sh
+  publish:
+    needs: [windows-update, macos-update]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: southkite2023/quota-hub
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify native run, archive digests, Android identity and fixed certificate
+        run: python3 scripts/prepare-130.py
+      - name: Create draft, upload immutable packages, then publish testing release
+        run: |
+          set -euo pipefail
+          if gh release view v1.3.0 >/dev/null 2>&1; then
+            echo 'Release already exists; refusing to replace packages.'
+            exit 1
+          fi
+          gh release create v1.3.0 --target b4b4c4c27d27fa09d4f1f62dd4909ea5062dca53 --draft --title '1.3.0 · Astracct 全端应用内更新测试版' --notes-file docs/releases/1.3.0.md
+          gh release upload v1.3.0 release/*
+          gh release edit v1.3.0 --draft=false --latest
+          gh release view v1.3.0 --json url,isDraft,isPrerelease,assets
