@@ -1,4 +1,5 @@
 import os
+import plistlib
 from pathlib import Path
 import shutil
 import signal
@@ -13,12 +14,14 @@ root = Path(tempfile.mkdtemp(prefix='astracct-update-test-'))
 installed = root / 'Installed App With Spaces.app'
 unpacked = root / 'source'
 subprocess.run(['/usr/bin/ditto', '-x', '-k', archive, str(unpacked)], check=True)
+version = plistlib.loads((unpacked / 'Astracct.app/Contents/Info.plist').read_bytes())['CFBundleShortVersionString']
+assert isinstance(version, str) and version.count('.') == 2
 shutil.copytree(unpacked / 'Astracct.app', installed, symlinks=True)
 marker = installed / 'Contents/Resources/old-bundle-marker.txt'
 marker.write_text('old bundle')
 waiter = subprocess.Popen(['/bin/sleep', '2'])
 threading.Thread(target=waiter.wait, daemon=True).start()
-subprocess.run(['/bin/sh', installer, archive, str(installed), str(waiter.pid), '1.3.0'], check=True, timeout=80)
+subprocess.run(['/bin/sh', installer, archive, str(installed), str(waiter.pid), version], check=True, timeout=80)
 assert not marker.exists()
 backups = list(root.glob('Installed App With Spaces.app.previous-*'))
 assert len(backups) == 1 and (backups[0] / 'Contents/Resources/old-bundle-marker.txt').exists()
@@ -38,7 +41,7 @@ shim.write_text('#!/bin/sh\ncase "$1" in */unpacked/Astracct.app) exit 11;; esac
 shim.chmod(0o755)
 waiter = subprocess.Popen(['/bin/sleep','2'])
 threading.Thread(target=waiter.wait, daemon=True).start()
-result = subprocess.run(['/bin/sh', installer, archive, str(installed), str(waiter.pid), '1.3.0'], env={**os.environ,'PATH':str(bin_dir)+':'+os.environ['PATH']}, timeout=80)
+result = subprocess.run(['/bin/sh', installer, archive, str(installed), str(waiter.pid), version], env={**os.environ,'PATH':str(bin_dir)+':'+os.environ['PATH']}, timeout=80)
 assert result.returncode != 0
 assert marker.read_text() == 'preserve on failure'
 time.sleep(1)

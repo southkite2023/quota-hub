@@ -4,10 +4,12 @@ $fixture=Join-Path $env:RUNNER_TEMP ('astracct-update-test-' + [guid]::NewGuid()
 $target=Join-Path $fixture 'Installed App With Spaces'
 New-Item -ItemType Directory -Path $target -Force | Out-Null
 [IO.Compression.ZipFile]::ExtractToDirectory($CandidateZip,$target)
+$version = ([Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $target 'astracct.exe')).ProductVersion -split '\+')[0]
+if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid candidate version' }
 Set-Content -LiteralPath (Join-Path $target 'keep-user-file.txt') -Value 'unrelated file'
 Set-Content -LiteralPath (Join-Path $target 'data/old-bundle-marker.txt') -Value 'old bundle'
 $waiter=Start-Process -FilePath powershell.exe -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 2' -PassThru -WindowStyle Hidden
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Installer $CandidateZip $target $waiter.Id '1.3.0'; if ($LASTEXITCODE -ne 0) { throw 'Installer rejected replacement' }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Installer $CandidateZip $target $waiter.Id $version; if ($LASTEXITCODE -ne 0) { throw 'Installer rejected replacement' }
 if (Test-Path -LiteralPath (Join-Path $target 'data/old-bundle-marker.txt')) {throw 'Old bundle not replaced'}
 if (-not (Test-Path -LiteralPath (Join-Path $target 'keep-user-file.txt'))) {throw 'Unrelated file was removed'}
 $backups=Get-ChildItem -LiteralPath $target -Directory -Force | Where-Object {$_.Name -like '.astracct-backup-*'}
@@ -23,7 +25,7 @@ $lock=[IO.File]::Open((Join-Path $target 'flutter_windows.dll'),[IO.FileMode]::O
 $failed=$false
 try {
     $waiter=Start-Process -FilePath powershell.exe -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 2' -PassThru -WindowStyle Hidden
-    try { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Installer $CandidateZip $target $waiter.Id '1.3.0'; if ($LASTEXITCODE -ne 0) { throw 'Installer rejected replacement' } } catch { $failed=$true }
+    try { & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Installer $CandidateZip $target $waiter.Id $version; if ($LASTEXITCODE -ne 0) { throw 'Installer rejected replacement' } } catch { $failed=$true }
 } finally {$lock.Dispose()}
 if (-not $failed) {throw 'Locked bundle should reject replacement'}
 if (-not (Test-Path -LiteralPath (Join-Path $target 'astracct.exe')) -or -not (Test-Path -LiteralPath (Join-Path $target 'data/rollback-marker.txt'))) {throw 'Rollback did not restore bundle'}
