@@ -3,6 +3,7 @@ import 'api_accounts.dart';
 import 'refresh_settings.dart';
 import 'deepseek_connection.dart';
 import 'app_theme.dart';
+import 'yuashie_login.dart';
 
 const _catalog = <({String id, String label, BalanceProvider? provider, String note})>[
   (id: 'deepseek', label: 'DeepSeek', provider: BalanceProvider.deepseek, note: 'API Key 查询可用、赠送与充值余额。'),
@@ -28,6 +29,8 @@ class AccountSettings extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(listenable: connection, builder: (context, _) => Scaffold(
     appBar: AppBar(title: const Text('余额账户设置')),
     body: SafeArea(child: ListView(padding: const EdgeInsets.all(20), children: [
+      const YuashieAccountCard(),
+      const SizedBox(height: 20),
       if (!desktop) ...[
       Text('让余额井然有序', style: Theme.of(context).textTheme.headlineSmall),
       const SizedBox(height: 8),
