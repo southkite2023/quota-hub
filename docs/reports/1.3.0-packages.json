@@ -1,0 +1,32 @@
+[
+  {
+    "file": "astracct-1.3.0-macos-universal.zip",
+    "bytes": 20276906,
+    "sha256": "24e2c79174df61951ecd12439c66bfe7dfbc8136a85198df3a6c2f02d2e6f7a4"
+  },
+  {
+    "file": "astracct-1.3.0-windows-x64.zip",
+    "bytes": 12531206,
+    "sha256": "993fc6b440b5f178519aa82a3afde97db6efe22974db12a2b35f8a11c06760ed"
+  },
+  {
+    "file": "quota-hub-1.3.0-arm64-v8a.apk",
+    "bytes": 17606890,
+    "sha256": "070016f9c873fc1fac4ebd7d713b5191ac8c98fa703715d8078825d68924fa04"
+  },
+  {
+    "file": "quota-hub-1.3.0-armeabi-v7a.apk",
+    "bytes": 14784752,
+    "sha256": "d61b28c50d5bac50dd3b6e4c8f3b894ccc30390568a3cf746ab489a6e8e10bfd"
+  },
+  {
+    "file": "quota-hub-1.3.0-universal.apk",
+    "bytes": 50465429,
+    "sha256": "b635df328ffd3e5fcd7a387a921550125b3b11762387d62a5832419d57d5c93f"
+  },
+  {
+    "file": "quota-hub-1.3.0-x86_64.apk",
+    "bytes": 19089633,
+    "sha256": "07b7757c62ef9321b6a721ccb5906cd426c360007e926f17b675eaa00f7084f4"
+  }
+]

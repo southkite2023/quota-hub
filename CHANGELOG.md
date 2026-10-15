@@ -4,7 +4,7 @@
 
 ## 1.3.0 — 2026-10-15
 
-类型：应用内更新功能扩展。状态：开发候选 `1.3.0+17`，尚未发布新安装包。
+类型：应用内更新功能扩展。状态：`1.3.0+17` Android / Windows / macOS 公开测试版已发布。
 
 ### 新增与调整
 
@@ -17,7 +17,9 @@
 
 ### 验证与限制
 
-- 本地 Flutter 静态检查、123 项测试、Web 生产构建通过；原生 CI 构建和系统安装验收进行中，不能将开发候选或旧安装包称为已发布的 1.3.0。
+- Flutter 静态检查、123 项测试、Web 生产构建、Android 固定签名构建与 Windows/macOS 窗口和安全存储检查、iOS 模拟器构建通过。原生运行 `38687215325`，源码 `b4b4c4c27d27fa09d4f1f62dd4909ea5062dca53`；PR #19 已合并。
+- 发布运行 `38688118475` 使用实际桌面候选包验证含空格路径下的替换、备份、重启，以及 Windows 文件占用/macOS 替换失败后的回退；重新核验全部产物摘要及 Android 固定证书、包名、版本、ABI、AOT、16 KB 对齐后公开 [v1.3.0](https://github.com/southkite2023/quota-hub/releases/tag/v1.3.0)，并设为 Latest。
+- 提供四种 Android APK、Windows x64 ZIP、macOS Universal ZIP、SHA256SUMS.txt、packages.json 与 apk-report.json；历史版本保留。真实厂商设备升级、用户 Mac 首次打开、真实 API 与长期后台行为仍待验收。
 - 旧版本须先从官网下载一次具备更新入口的新版本。Android 需要系统安装确认；桌面应用目录需要写入权限；macOS 仍未配置 Apple 分发签名和公证。Linux 无公开安装包，iOS 使用 PWA。
 
 ## 1.2.0 — 2026-10-15
