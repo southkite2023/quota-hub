@@ -140,6 +140,7 @@ void main() {
     final secondCard = find.ancestor(of: find.text('不选的账户'), matching: find.byType(Card));
     final checkbox = find.descendant(of: secondCard, matching: find.byType(CheckboxListTile));
     await tester.ensureVisible(checkbox);
+    await tester.pumpAndSettle();
     await tester.tap(checkbox); await tester.pump();
     final restored = ApiAccounts(store: store); await restored.initialize(query: false);
     expect(restored.widgetAccountIds.toSet(), {'first', 'second'});
