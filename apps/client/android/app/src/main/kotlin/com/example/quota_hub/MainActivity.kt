@@ -13,6 +13,7 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        AppUpdater.register(this, MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "astracct/update"))
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/refresh").setMethodCallHandler { call, result ->
             when (call.method) {
                 "acquire" -> result.success(RefreshRuntime.acquire("ui"))
