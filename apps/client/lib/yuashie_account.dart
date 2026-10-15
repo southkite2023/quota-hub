@@ -21,7 +21,7 @@ class YuashieAccount extends ChangeNotifier {
     FlutterSecureStorage? storage,
     Future<bool> Function(Uri)? openBrowser,
   }) : _client = client ?? http.Client(),
-       _storage = storage ?? const FlutterSecureStorage(),
+       _storage = storage ?? sessionStorage,
        _openBrowser =
            openBrowser ??
            ((uri) => launchUrl(
@@ -29,6 +29,14 @@ class YuashieAccount extends ChangeNotifier {
              mode: LaunchMode.externalApplication,
              webOnlyWindowName: '_blank',
            ));
+  // Direct-distribution macOS builds have no shared-keychain provisioning profile.
+  // Use the encrypted login keychain with a dedicated service for account sessions.
+  static const sessionStorage = FlutterSecureStorage(
+    mOptions: MacOsOptions(
+      accountName: 'com.yuashie.astracct.identity',
+      usesDataProtectionKeychain: false,
+    ),
+  );
   static final shared = YuashieAccount();
   static const origin = 'https://yuashie.cn';
   static const _storageKey = 'yuashie_login_session_v1';

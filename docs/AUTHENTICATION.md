@@ -12,3 +12,10 @@
 服务端配置、第三方平台申请与回调地址见 [Netweb 统一账号说明](https://github.com/southkite2023/Netweb/blob/main/docs/UNIFIED-ACCOUNTS.md)。服务地址固定为 `https://yuashie.cn`；网页客户端应同源托管，未开放跨站 CORS。iOS 公开网页版本由 Netweb 的独立 PWA 提供。
 
 本地验证：Flutter 3.47.5 静态检查、119 项测试与 Web 构建通过。macOS 本地命令行工具默认 SDK 与 linker 不匹配时，本轮测试仅通过临时 xcrun 路径选择现有 macOS 26.5 SDK，未修改系统 SDK 或依赖源码。原生 CI、真实第三方授权及验证码验收需配置与设备验证后确认。
+
+
+## macOS 登录凭据存储（1.3.1）
+
+统一账号会话使用 `com.yuashie.astracct.identity` 专属 service 的系统登录钥匙串，显式设置 `usesDataProtectionKeychain=false`。这与余额凭据的独立 service 隔离，适合没有 Keychain Sharing provisioning 的直接分发包；不新增共享访问组，不使用明文文件或偏好存储降级。Android/iOS/Windows 保留各自默认系统安全存储配置。macOS 更新后需重新登录，余额账户数据不迁移或删除。
+
+CI 的原生冒烟检查必须对 `YuashieAccount.sessionStorage` 使用独立合成 key 完成写入、读取和删除，不能只测试 `DesktopAccountsStore` 的余额凭据配置。

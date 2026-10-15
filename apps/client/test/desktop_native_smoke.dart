@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:quota_hub/app_theme.dart';
+import 'package:quota_hub/yuashie_account.dart';
 import 'package:quota_hub/desktop_window.dart';
 import 'package:quota_hub/macos_menu_bar.dart';
 
@@ -13,6 +14,7 @@ Future<void> main() async {
     accountName: 'com.yuashie.astracct.desktop', usesDataProtectionKeychain: false,
   ));
   final key = 'astracct.desktop.smoke.$pid';
+  final identityKey = 'astracct.identity.smoke.$pid';
   try {
     await NativeDesktopWindow.initialize();
     runApp(MaterialApp(theme: AstracctTheme.light(), home: const Scaffold(body: Text('Astracct native window smoke test'))));
@@ -31,6 +33,13 @@ Future<void> main() async {
     if (await storage.read(key: key) != 'synthetic-smoke-value') throw StateError('Native secure storage round trip failed');
     await storage.delete(key: key);
     if (await storage.read(key: key) != null) throw StateError('Native secure storage delete failed');
+    // Test the production login vault separately; unique keys preserve user sessions.
+    const identityStorage = YuashieAccount.sessionStorage;
+    await identityStorage.write(key: identityKey, value: 'synthetic-session-only');
+    if (await identityStorage.read(key: identityKey) != 'synthetic-session-only') throw StateError('Native login keychain round trip failed');
+    await identityStorage.delete(key: identityKey);
+    if (await identityStorage.read(key: identityKey) != null) throw StateError('Native login keychain delete failed');
+    stdout.writeln('ASTRACCT_IDENTITY_VAULT_SMOKE_PASS: login session write/read/delete');
     if (Platform.isMacOS) {
       final menu = NativeMacMenuHost();
       await menu.initialize((_, _) async {});
@@ -51,6 +60,7 @@ Future<void> main() async {
   } catch (error) {
     stderr.writeln('ASTRACCT_DESKTOP_SMOKE_FAIL: $error');
     try { await storage.delete(key: key); } catch (_) {}
+    try { await YuashieAccount.sessionStorage.delete(key: identityKey); } catch (_) {}
     exit(1);
   }
 }
