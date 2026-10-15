@@ -4,6 +4,7 @@ import 'refresh_settings.dart';
 import 'deepseek_connection.dart';
 import 'app_theme.dart';
 import 'yuashie_login.dart';
+import 'app_update_card.dart';
 
 const _catalog = <({String id, String label, BalanceProvider? provider, String note})>[
   (id: 'deepseek', label: 'DeepSeek', provider: BalanceProvider.deepseek, note: 'API Key 查询可用、赠送与充值余额。'),
@@ -78,6 +79,8 @@ class AccountSettings extends StatelessWidget {
       if (desktop)
       FilledButton.icon(onPressed: connection.ready && !connection.busy && !connection.storageFailed ? () => _edit(context) : null,
         icon: const Icon(Icons.add), label: const Text('添加余额账户')),
+      const SizedBox(height: 20),
+      const AppUpdateCard(),
     ])),
   ));
 }

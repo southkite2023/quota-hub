@@ -18,6 +18,8 @@ if mac.is_dir() and (mac / 'Configs/AppInfo.xcconfig').exists():
         path = mac / name
         entitlements = plistlib.loads(path.read_bytes())
         entitlements['com.apple.security.network.client'] = True
+        # Direct distribution: self-updates replace the writable application bundle.
+        entitlements['com.apple.security.app-sandbox'] = False
         # The desktop vault uses the legacy Keychain: no shared access group or provisioning profile.
         path.write_bytes(plistlib.dumps(entitlements))
     (mac / 'MainFlutterWindow.swift').write_text((ROOT.parents[1] / 'scripts/macos/MainFlutterWindow.swift').read_text())
