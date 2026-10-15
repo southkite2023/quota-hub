@@ -28,3 +28,5 @@ try {
 if (-not $failed) {throw 'Locked bundle should reject replacement'}
 if (-not (Test-Path -LiteralPath (Join-Path $target 'astracct.exe')) -or -not (Test-Path -LiteralPath (Join-Path $target 'data/rollback-marker.txt'))) {throw 'Rollback did not restore bundle'}
 Write-Output 'ASTRACCT_WINDOWS_UPDATE_PASS: version, spaces in path, replacement, backup, relaunch, locked-file rollback'
+# The sharing-violation child must fail; clear its expected native exit code after assertions.
+$global:LASTEXITCODE=0
