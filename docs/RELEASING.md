@@ -1,6 +1,6 @@
 # Android 安装包分发
 
-当前公开下载：Android / Windows / macOS 均为 1.3.0+17 应用内更新测试版。用户最新要求优先通过 [Yuashie 服务器下载](https://yuashie.cn/projects/001/download)，GitHub Releases 保留全部实际安装包和版本说明作为备用来源；macOS 尚未签名公证。
+当前公开下载：Android / Windows / macOS 均为 1.3.1+18 登录钥匙串修复测试版。用户最新要求优先通过 [Yuashie 服务器下载](https://yuashie.cn/projects/001/download)，GitHub Releases 保留全部实际安装包和版本说明作为备用来源；macOS 尚未签名公证。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
 - 0.8.0 发布后由 GitHub Releases 提供 ARM64、ARMv7、x86_64 与通用 APK。
@@ -74,3 +74,10 @@ ARM64 17,319,653 字节；通用 49,588,368 字节。实际公开包摘要见 [�
 四种 APK 使用包名 `com.yuashie.astracct`、版本 1.3.0、构建号 17，沿用既有固定证书。Windows 为完整 x64 ZIP；macOS 为 Intel + Apple Silicon Universal ZIP。安装包与校验清单见 Release，记录见 `docs/reports/1.3.0-packages.json`。旧版本必须先安装一次新包；此后在应用设置中检查、下载并确认安装。服务器将校验完成的新版本按平台写入公开清单；网页分发说明见 Netweb 的 `docs/ASTRACCT-UPDATES.md`。
 
 本次仍为公开测试版，厂商真机、用户首次安装、真实 API 和长期后台行为待进一步验收。一次性发布工作流及高权限准备脚本成功后移除，防止重复发布。
+
+
+## 当前包：1.3.1+18 macOS 登录钥匙串修复测试版
+
+[v1.3.1](https://github.com/southkite2023/quota-hub/releases/tag/v1.3.1) 已公开并设为 Latest。源码 `7b6ac0471bfd1efa0a903c8638daaa2a40bc7195`，原生构建 `38691546153`、客户端检查 `38691546246`、服务端检查 `38691546182` 通过。125 项客户端测试和静态检查通过，macOS 直接使用生产登录凭据存储完成真实钥匙串写入、读取和删除，同时保留余额凭据与窗口/菜单栏检查。
+
+发布运行 `38692725719` 校验不可变构建摘要、Android 1.3.1/build 18 与固定证书、Windows/macOS 完整版本及 Universal 架构，并验证实际桌面替换、重启和失败回退后，创建草稿、上传全部附件并公开。安装器测试从候选包元数据读取版本，不再固定为 1.3.0。清单见 `docs/reports/1.3.1-packages.json`。macOS 更新后需重新登录，余额数据保留；用户机器的真实账号验收仍待完成。一次性发布工作流及准备脚本在成功后移除。
