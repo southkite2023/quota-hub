@@ -154,7 +154,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   }
 
   void _toggleMoney() {
-    unawaited(AppPreferences.instance.toggleHidden());
+    unawaited(settingsAction(context, AppPreferences.instance.toggleHidden));
     if (_android) unawaited(_syncPersonalWidget());
     if (_serverConfigured && _liveRaw != null) {
       unawaited(
@@ -353,7 +353,12 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                       : Icons.visibility_outlined,
                 ),
                 onPressed: () {
-                  unawaited(AppPreferences.instance.toggleHidden());
+                  unawaited(
+                    settingsAction(
+                      context,
+                      AppPreferences.instance.toggleHidden,
+                    ),
+                  );
                   if (_android) unawaited(_syncPersonalWidget());
                   if (_serverConfigured && _liveRaw != null) {
                     unawaited(

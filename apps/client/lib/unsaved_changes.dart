@@ -7,8 +7,14 @@ abstract final class EditSession {
 }
 
 class UnsavedChanges extends StatefulWidget {
-  const UnsavedChanges({super.key, required this.dirty, required this.child});
+  const UnsavedChanges({
+    super.key,
+    required this.dirty,
+    this.canLeave,
+    required this.child,
+  });
   final bool Function() dirty;
+  final bool Function()? canLeave;
   final Widget child;
   @override
   State<UnsavedChanges> createState() => _UnsavedChangesState();
@@ -25,6 +31,12 @@ class _UnsavedChangesState extends State<UnsavedChanges> {
   }
 
   Future<bool> _confirm() async {
+    if (widget.canLeave?.call() == false) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: AppText('正在验证，请等待完成后离开。')));
+      return false;
+    }
     if (!widget.dirty() || _leaving) return true;
     if (_asking) return false;
     _asking = true;
@@ -57,7 +69,7 @@ class _UnsavedChangesState extends State<UnsavedChanges> {
 
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: _leaving || !widget.dirty(),
+    canPop: _leaving || (!widget.dirty() && widget.canLeave?.call() != false),
     onPopInvokedWithResult: (didPop, result) async {
       if (didPop) return;
       if (await _confirm() && mounted) {

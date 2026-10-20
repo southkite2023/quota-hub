@@ -74,6 +74,8 @@ class AppText extends StatelessWidget {
 }
 
 const _english = <String, String>{
+  "正在验证，请等待完成后离开。":
+      "Verification is in progress. Wait for it to finish before leaving.",
   "设置": "Settings",
   "通用": "General",
   "刷新、启动与窗口行为": "Refresh, startup and windows",

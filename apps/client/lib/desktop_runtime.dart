@@ -39,7 +39,7 @@ Rect visibleWindow(Rect requested, Rect display) {
   );
 }
 
-class DesktopRuntime with WindowListener, TrayListener {
+class DesktopRuntime extends ChangeNotifier with WindowListener, TrayListener {
   DesktopRuntime._();
   static final instance = DesktopRuntime._();
   bool ready = false, autostart = false, floating = false, trayReady = false;
@@ -138,6 +138,7 @@ class DesktopRuntime with WindowListener, TrayListener {
     await startup.configureStartup(value);
     autostart = await startup.startupEnabled();
     if (autostart != value) throw StateError('Startup setting was not applied');
+    notifyListeners();
   }
 
   Future<void> reveal() async {

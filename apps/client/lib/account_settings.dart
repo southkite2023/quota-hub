@@ -433,6 +433,7 @@ class _AccountEditorState extends State<AccountEditor> {
       final oneapi = choice.provider == BalanceProvider.oneapi;
       final subscription = choice.provider == BalanceProvider.subscription;
       return UnsavedChanges(
+        canLeave: () => !widget.connection.busy,
         dirty: () => _dirty || widget.connection.busy,
         child: PopScope(
           canPop: !widget.connection.busy,

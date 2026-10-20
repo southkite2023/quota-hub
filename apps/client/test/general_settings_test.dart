@@ -286,6 +286,7 @@ void main() {
     'dirty route blocks back, keeps input and discards only after confirmation',
     (tester) async {
       var dirty = true;
+      var canLeave = false;
       await tester.pumpWidget(
         shell(
           Builder(
@@ -296,6 +297,7 @@ void main() {
                   MaterialPageRoute<void>(
                     builder: (_) => UnsavedChanges(
                       dirty: () => dirty,
+                      canLeave: () => canLeave,
                       child: const Scaffold(
                         appBar: null,
                         body: Text('editor contents'),
@@ -311,6 +313,11 @@ void main() {
       );
       await tester.tap(find.text('open editor'));
       await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('放弃未保存的修改？'), findsNothing);
+      expect(find.text('editor contents'), findsOneWidget);
+      canLeave = true;
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.text('放弃未保存的修改？'), findsOneWidget);

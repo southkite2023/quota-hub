@@ -170,7 +170,10 @@ class GeneralSettings extends StatelessWidget {
   final bool desktop;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: AppPreferences.instance,
+    listenable: Listenable.merge([
+      AppPreferences.instance,
+      DesktopRuntime.instance,
+    ]),
     builder: (context, _) {
       final prefs = AppPreferences.instance;
       return SettingsPage(
@@ -185,10 +188,6 @@ class GeneralSettings extends StatelessWidget {
               value: DesktopRuntime.instance.autostart,
               onChanged: (value) => settingsAction(context, () async {
                 await DesktopRuntime.instance.setAutostart(value);
-                await prefs.set(
-                  'startupChanged',
-                  DateTime.now().toIso8601String(),
-                );
               }),
             ),
             SwitchListTile(

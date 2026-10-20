@@ -97,7 +97,8 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
     );
   }
 
-  Future<void> _togglePrivacy() => AppPreferences.instance.toggleHidden();
+  Future<void> _togglePrivacy() =>
+      settingsAction(context, AppPreferences.instance.toggleHidden);
 
   void _privacyChanged() {
     if (mounted) setState(() {});
