@@ -1,18 +1,35 @@
 package com.example.quota_hub
 
 import android.content.Intent
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import org.json.JSONObject
 import org.json.JSONArray
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private var notificationResult: MethodChannel.Result? = null
     private var widgetChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "astracct/system").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "permissions" -> {
+                    val power = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+                    result.success(mapOf("notifications" to RefreshRuntime.notificationAllowed(this),
+                        "batteryUnrestricted" to power.isIgnoringBatteryOptimizations(packageName)))
+                }
+                "openSettings" -> {
+                    try {
+                        startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            android.net.Uri.parse("package:$packageName")))
+                        result.success(null)
+                    } catch (error: Exception) { result.error("settings", "System settings unavailable", null) }
+                }
+                else -> result.notImplemented()
+            }
+        }
         AppUpdater.register(this, MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "astracct/update"))
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "quota_hub/refresh").setMethodCallHandler { call, result ->
             when (call.method) {
@@ -114,6 +131,8 @@ class MainActivity : FlutterActivity() {
                             .putString("snapshot", snapshot)
                             .putString("widget_snapshot", widgetSnapshot)
                             .putBoolean("hideMoney", call.argument<Boolean>("hideMoney") ?: false)
+                            .putString("theme", call.argument<String>("theme") ?: "system")
+                            .putString("language", call.argument<String>("language") ?: "system")
                             .apply()
                         QuotaWidgetProvider.refreshAll(this)
                         result.success(null)

@@ -29,8 +29,9 @@ class QuotaWidgetProvider : AppWidgetProvider() {
         private fun update(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val rows = WidgetBalances.read(context)
             val views = RemoteViews(context.packageName, R.layout.quota_widget)
-            views.setTextViewText(R.id.quota_widget_title, "账户余额 · ${rows.size} 项")
-            views.setTextViewText(R.id.quota_widget_empty, "打开应用添加账户并勾选\n要显示的小组件余额")
+            WidgetAppearance.applyHeader(context, views)
+            views.setTextViewText(R.id.quota_widget_title, if (WidgetAppearance.english(context)) "Balances · ${rows.size}" else "账户余额 · ${rows.size} 项")
+            views.setTextViewText(R.id.quota_widget_empty, if (WidgetAppearance.english(context)) "Open the app and select\naccounts for this widget" else "打开应用添加账户并勾选\n要显示的小组件余额")
             views.setEmptyView(R.id.quota_widget_list, R.id.quota_widget_empty)
             val open = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -89,9 +90,40 @@ object WidgetBalances {
         }
     } catch (_: Exception) { listOf(WidgetBalance("", "数据不可用", "请打开应用刷新", "读取失败")) }
     fun view(context: Context, row: WidgetBalance) = RemoteViews(context.packageName, R.layout.quota_widget_row).apply {
+        WidgetAppearance.applyRow(context, this)
         setTextViewText(R.id.quota_row_title, row.title)
-        setTextViewText(R.id.quota_row_value, row.value)
-        setTextViewText(R.id.quota_row_status, row.status)
+        setTextViewText(R.id.quota_row_value, WidgetAppearance.text(context, row.value))
+        setTextViewText(R.id.quota_row_status, WidgetAppearance.text(context, row.status))
         setOnClickFillInIntent(R.id.quota_row_root, Intent().putExtra("accountId", row.id))
+    }
+}
+
+object WidgetAppearance {
+    private fun dark(context: Context): Boolean = when (context.getSharedPreferences("quota_widget", Context.MODE_PRIVATE).getString("theme", "system")) {
+        "dark" -> true
+        "light" -> false
+        else -> (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+    }
+    fun english(context: Context): Boolean = when (context.getSharedPreferences("quota_widget", Context.MODE_PRIVATE).getString("language", "system")) {
+        "en" -> true
+        "zh" -> false
+        else -> context.resources.configuration.locales[0].language == "en"
+    }
+    fun text(context: Context, value: String): String {
+        if (!english(context)) return value
+        return mapOf("暂不可用" to "Unavailable", "未知" to "Unknown", "缓存已过期" to "Stale cache", "查询失败" to "Query failed",
+            "尚无余额" to "No balance yet", "可用额度" to "Available credit", "可用余额" to "Available balance", "读取失败" to "Read failed")[value] ?: value
+    }
+    fun applyHeader(context: Context, view: RemoteViews) {
+        view.setInt(R.id.quota_widget_root, "setBackgroundResource", if (dark(context)) R.drawable.quota_widget_background_dark else R.drawable.quota_widget_background)
+        val ink = android.graphics.Color.parseColor(if (dark(context)) "#F0F1F8" else "#25304A")
+        view.setTextColor(R.id.quota_widget_title, ink)
+        view.setTextColor(R.id.quota_widget_empty, ink)
+    }
+    fun applyRow(context: Context, view: RemoteViews) {
+        val ink = android.graphics.Color.parseColor(if (dark(context)) "#F0F1F8" else "#25304A")
+        view.setTextColor(R.id.quota_row_title, ink)
+        view.setTextColor(R.id.quota_row_value, ink)
+        view.setTextColor(R.id.quota_row_status, android.graphics.Color.parseColor(if (dark(context)) "#C6CCD9" else "#566174"))
     }
 }

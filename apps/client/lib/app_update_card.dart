@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'app_update.dart';
+import 'app_activity.dart';
 import 'update_installer_stub.dart'
     if (dart.library.io) 'update_installer_io.dart'
     as installer;
@@ -43,10 +45,12 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
   }
 
   Future<void> _downloadAndInstall() async {
+    if (UpdateActivity.busy && !_busy) return;
     final release = _release!;
     if (_download == null) {
       setState(() {
         _busy = true;
+        UpdateActivity.busy = true;
         _status = '正在从服务器下载安装包…';
         _progress = 0;
       });
@@ -58,9 +62,11 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
       } catch (_) {
         if (mounted) setState(() => _status = '下载或校验失败，请重试。');
       } finally {
+        UpdateActivity.busy = false;
         if (mounted)
           setState(() {
             _busy = false;
+            UpdateActivity.busy = false;
             _progress = null;
           });
       }
@@ -69,8 +75,8 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('安装更新？'),
-        content: Text(
+        title: const AppText('安装更新？'),
+        content: AppText(
           defaultTargetPlatform == TargetPlatform.android
               ? '将打开系统安装确认。如需授权“允许此来源安装”，完成后返回并再次点击安装。本机账户数据会保留。'
               : '应用将退出，替换当前程序后重新打开。请先完成账户编辑。本机账户数据会保留；旧程序会备份在同一目录。',
@@ -78,23 +84,27 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: const AppText('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('安装'),
+            child: const AppText('安装'),
           ),
         ],
       ),
     );
     if (confirm != true || !mounted) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      UpdateActivity.busy = true;
+    });
     try {
       await installer.installUpdate(_download!, release);
       if (mounted) setState(() => _status = '请在系统页面完成安装；如取消可再次点击安装。');
     } catch (_) {
       if (mounted) setState(() => _status = '安装尚未完成。请检查系统安装权限或目录写入权限，然后重试。');
     } finally {
+      UpdateActivity.busy = false;
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -106,18 +116,18 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('应用更新'),
+          const AppText('应用更新'),
           const SizedBox(height: 8),
-          Text(_status),
+          AppText(_status),
           if (_progress != null) ...[
             const SizedBox(height: 12),
             LinearProgressIndicator(value: _progress),
-            Text('${(_progress! * 100).toStringAsFixed(0)}%'),
+            AppText('${(_progress! * 100).toStringAsFixed(0)}%'),
           ],
           if (_release != null && _release!.notes.isNotEmpty)
             ExpansionTile(
-              title: const Text('更新说明'),
-              children: [Text(_release!.notes)],
+              title: const AppText('更新说明'),
+              children: [AppText(_release!.notes)],
             ),
           Wrap(
             spacing: 12,
@@ -125,19 +135,19 @@ class _AppUpdateCardState extends State<AppUpdateCard> {
               if (!kIsWeb && updatePlatform != null)
                 TextButton(
                   onPressed: _busy ? null : _check,
-                  child: const Text('检查更新'),
+                  child: const AppText('检查更新'),
                 ),
               if (_release != null)
                 FilledButton(
                   onPressed: _busy ? null : _downloadAndInstall,
-                  child: Text(_download == null ? '下载更新' : '安装更新'),
+                  child: AppText(_download == null ? '下载更新' : '安装更新'),
                 ),
               TextButton(
                 onPressed: () => launchUrl(
                   Uri.parse('https://yuashie.cn/projects/001/download'),
                   mode: LaunchMode.externalApplication,
                 ),
-                child: const Text('官网下载'),
+                child: const AppText('官网下载'),
               ),
             ],
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_localizations.dart';
 
 import 'account_settings.dart';
 import 'api_accounts.dart';
@@ -64,16 +65,16 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('移除 ${account.name}？'),
-        content: const Text('删除本机凭据与余额，其他账户不受影响。'),
+        title: AppText('移除 ${account.name}？'),
+        content: AppText('删除本机凭据与余额，其他账户不受影响。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: AppText('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('移除'),
+            child: AppText('移除'),
           ),
         ],
       ),
@@ -129,20 +130,20 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
               ),
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  AppText(
                     '星账 Astracct',
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
-                  Text(
+                  AppText(
                     'ANDROID APP',
                     style: TextStyle(
                       fontSize: 9,
                       letterSpacing: 1.4,
-                      color: AstracctTheme.muted,
+                      color: AstracctTheme.mutedFor(context),
                     ),
                   ),
                 ],
@@ -152,7 +153,7 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
         ),
         actions: [
           IconButton(
-            tooltip: '余额账户设置',
+            tooltip: context.tr('余额账户设置'),
             onPressed: widget.onSettings,
             icon: const Icon(Icons.settings_outlined),
           ),
@@ -173,12 +174,18 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFFEEECFF),
-                            Color(0xFFE5F0FF),
-                            Color(0xFFD9F3EC),
-                          ],
+                        gradient: LinearGradient(
+                          colors: AstracctTheme.isDark(context)
+                              ? [
+                                  Color(0xFF28243D),
+                                  Color(0xFF1E2B42),
+                                  Color(0xFF1B3832),
+                                ]
+                              : [
+                                  Color(0xFFEEECFF),
+                                  Color(0xFFE5F0FF),
+                                  Color(0xFFD9F3EC),
+                                ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -192,17 +199,17 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          AppText(
                             'ASTRACCT / ANDROID',
                             style: TextStyle(
                               fontSize: 11,
                               letterSpacing: 2,
                               fontWeight: FontWeight.w800,
-                              color: AstracctTheme.muted,
+                              color: AstracctTheme.mutedFor(context),
                             ),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
+                          AppText(
                             '你的余额，',
                             style: TextStyle(
                               fontSize: 40,
@@ -210,7 +217,7 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const Text(
+                          AppText(
                             '一眼看清。',
                             style: TextStyle(
                               fontSize: 40,
@@ -220,10 +227,10 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                             ),
                           ),
                           const SizedBox(height: 18),
-                          const Text(
+                          AppText(
                             '连接服务商，集中查看每个账户的余额。\n凭据在本机加密保存，账户与币种分别展示。',
                             style: TextStyle(
-                              color: AstracctTheme.muted,
+                              color: AstracctTheme.mutedFor(context),
                               height: 1.8,
                             ),
                           ),
@@ -231,7 +238,7 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                           FilledButton.icon(
                             onPressed: _editable ? () => _edit() : null,
                             icon: const Icon(Icons.add),
-                            label: const Text('添加余额账户'),
+                            label: AppText('添加余额账户'),
                           ),
                         ],
                       ),
@@ -245,12 +252,12 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Text(
+                            AppText(
                               connection.refreshMinutes == 0
                                   ? '自动刷新已关闭'
                                   : '自动刷新：每 ${connection.refreshMinutes} 分钟',
-                              style: const TextStyle(
-                                color: AstracctTheme.muted,
+                              style: TextStyle(
+                                color: AstracctTheme.mutedFor(context),
                               ),
                             ),
                             TextButton.icon(
@@ -261,14 +268,14 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                                   ? connection.refresh
                                   : null,
                               icon: const Icon(Icons.refresh, size: 18),
-                              label: const Text('刷新余额'),
+                              label: AppText('刷新余额'),
                             ),
                           ],
                         ),
                       ),
                     ),
                     if (!connection.ready || connection.busy)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(top: 12),
                         child: LinearProgressIndicator(),
                       ),
@@ -323,7 +330,7 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                       spacing: 16,
                       runSpacing: 8,
                       children: [
-                        Text(
+                        AppText(
                           '余额账户',
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
@@ -335,7 +342,7 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                                 : Icons.visibility_outlined,
                             size: 18,
                           ),
-                          label: Text(widget.hideMoney ? '显示金额' : '隐藏金额'),
+                          label: AppText(widget.hideMoney ? '显示金额' : '隐藏金额'),
                         ),
                       ],
                     ),
@@ -349,12 +356,20 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                           ...BalanceCategory.values,
                         ])
                           ChoiceChip(
-                            label: Text(
+                            selectedColor: Theme.of(
+                              context,
+                            ).colorScheme.secondaryContainer,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLow,
+                            label: AppText(
                               category?.label ?? '全部',
                               style: TextStyle(
                                 color: _filter == category
-                                    ? Colors.white
-                                    : AstracctTheme.muted,
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.onSecondaryContainer
+                                    : AstracctTheme.mutedFor(context),
                               ),
                             ),
                             selected: _filter == category,
@@ -371,12 +386,14 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                             vertical: 36,
                             horizontal: 20,
                           ),
-                          child: Text(
+                          child: AppText(
                             connection.entries.isEmpty
                                 ? '还没有余额账户。点击「添加余额账户」开始连接。'
                                 : '该种类暂无账户',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: AstracctTheme.muted),
+                            style: TextStyle(
+                              color: AstracctTheme.mutedFor(context),
+                            ),
                           ),
                         ),
                       ),
@@ -428,15 +445,15 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                     TextButton.icon(
                       onPressed: widget.onSettings,
                       icon: const Icon(Icons.tune, size: 18),
-                      label: const Text('管理账户、小组件与刷新设置'),
+                      label: AppText('管理账户、小组件与刷新设置'),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    AppText(
                       '数据保存在本机。主界面显示全部账户，小组件显示勾选账户；不跨账户或币种求和。',
                       style: TextStyle(
                         fontSize: 12,
                         height: 1.8,
-                        color: AstracctTheme.muted,
+                        color: AstracctTheme.mutedFor(context),
                       ),
                     ),
                   ],
@@ -470,7 +487,7 @@ class MobileAccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(20),
       border: Border.all(
         color: selected ? AstracctTheme.primary : AstracctTheme.border,
@@ -490,35 +507,32 @@ class MobileAccountCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF2F3FB),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
+                child: AppText(
                   entry.category.label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AstracctTheme.muted,
+                    color: AstracctTheme.mutedFor(context),
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
+              AppText(
                 entry.name,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
-              Text(
+              AppText(
                 entry.provider.label,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               Text(account.label, style: Theme.of(context).textTheme.bodySmall),
               if (selected)
-                const Text(
+                AppText(
                   '已从桌面组件打开对应账户',
-                  style: TextStyle(color: AstracctTheme.success),
+                  style: TextStyle(color: AstracctTheme.successFor(context)),
                 ),
               const SizedBox(height: 22),
               // Keep every metric and state; OpenAI costs never become a balance.
@@ -539,7 +553,7 @@ class MobileAccountCard extends StatelessWidget {
                                 : 16,
                             height: 1.3,
                             fontWeight: FontWeight.w600,
-                            color: AstracctTheme.ink,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                     ),
                   ),
@@ -548,13 +562,13 @@ class MobileAccountCard extends StatelessWidget {
                 const SizedBox(height: 14),
               ],
               if (error != null)
-                Text(
+                AppText(
                   error!,
-                  style: const TextStyle(color: AstracctTheme.error),
+                  style: TextStyle(color: AstracctTheme.errorFor(context)),
                 ),
               const Divider(color: AstracctTheme.border),
               const SizedBox(height: 6),
-              Text(
+              AppText(
                 account.lastSuccessAt == null
                     ? '尚无成功记录'
                     : '上次成功：${_time(account.lastSuccessAt!)}',
@@ -563,8 +577,8 @@ class MobileAccountCard extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 children: [
-                  TextButton(onPressed: onEdit, child: const Text('编辑')),
-                  TextButton(onPressed: onRemove, child: const Text('移除')),
+                  TextButton(onPressed: onEdit, child: AppText('编辑')),
+                  TextButton(onPressed: onRemove, child: AppText('移除')),
                 ],
               ),
             ],
@@ -586,7 +600,10 @@ class _Notice extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 12),
-    child: Text(message, style: const TextStyle(color: AstracctTheme.error)),
+    child: AppText(
+      message,
+      style: TextStyle(color: AstracctTheme.errorFor(context)),
+    ),
   );
 }
 
@@ -598,21 +615,26 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(13),
     decoration: BoxDecoration(
-      color: color,
+      color: AstracctTheme.isDark(context)
+          ? Theme.of(context).colorScheme.surfaceContainerHighest
+          : color,
       borderRadius: BorderRadius.circular(13),
       border: Border.all(color: AstracctTheme.border),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        AppText(
           label,
-          style: const TextStyle(fontSize: 11, color: AstracctTheme.muted),
+          style: TextStyle(
+            fontSize: 11,
+            color: AstracctTheme.mutedFor(context),
+          ),
         ),
         const SizedBox(height: 12),
-        Text(
+        AppText(
           value,
-          style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700),
+          style: TextStyle(fontSize: 21, fontWeight: FontWeight.w700),
         ),
       ],
     ),

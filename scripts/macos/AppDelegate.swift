@@ -3,6 +3,12 @@ import FlutterMacOS
 
 @main
 class AppDelegate: FlutterAppDelegate {
+  var allowTermination = false
+  override func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+    if allowTermination { return .terminateNow }
+    (mainFlutterWindow as? MainFlutterWindow)?.requestQuit()
+    return .terminateCancel
+  }
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     return false
   }

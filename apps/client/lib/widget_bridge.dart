@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'app_preferences.dart';
 
 /// Android widget handoff; other platforms keep using the in-app demo only.
 class WidgetBridge {
   static const _channel = MethodChannel('quota_hub/widget');
-  static bool get _android => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  static bool get _android =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   static void listen(void Function(String accountId) openAccount) {
     if (!_android) return;
@@ -37,18 +39,26 @@ class WidgetBridge {
     }
   }
 
-  static Future<void> showScenario(String scenario, {required bool hideMoney}) async {
+  static Future<void> showScenario(
+    String scenario, {
+    required bool hideMoney,
+  }) async {
     if (!_android) return;
-    final raw = jsonDecode(await rootBundle.loadString('assets/cases.json')) as List<dynamic>;
+    final raw =
+        jsonDecode(await rootBundle.loadString('assets/cases.json'))
+            as List<dynamic>;
     Map<String, dynamic> named(String name) => Map<String, dynamic>.from(
-          raw.firstWhere((item) => item['name'] == name) as Map,
-        );
+      raw.firstWhere((item) => item['name'] == name) as Map,
+    );
     final normal = named('normal');
     final accounts = List<dynamic>.from(normal['accounts'] as List);
     accounts.add((named('zero')['accounts'] as List).first);
-    if (scenario == 'stale') accounts[0] = (named('stale')['accounts'] as List).first;
-    if (scenario == 'unknown') accounts[1] = (named('unknown')['accounts'] as List).first;
-    if (scenario == 'first_failure') accounts[2] = (named('first_failure')['accounts'] as List).first;
+    if (scenario == 'stale')
+      accounts[0] = (named('stale')['accounts'] as List).first;
+    if (scenario == 'unknown')
+      accounts[1] = (named('unknown')['accounts'] as List).first;
+    if (scenario == 'first_failure')
+      accounts[2] = (named('first_failure')['accounts'] as List).first;
     final snapshot = jsonEncode({
       'schemaVersion': 1,
       'generatedAt': normal['generatedAt'],
@@ -57,6 +67,8 @@ class WidgetBridge {
     try {
       await _channel.invokeMethod<void>('saveSnapshot', {
         'snapshot': snapshot,
+        'theme': AppPreferences.instance.themeMode.name,
+        'language': AppPreferences.instance.language,
         'hideMoney': hideMoney,
       });
     } on PlatformException catch (error) {
@@ -64,8 +76,18 @@ class WidgetBridge {
     }
   }
 
-  static Future<void> showLiveSnapshot(String snapshot, {required bool hideMoney, String? widgetSnapshot}) async {
+  static Future<void> showLiveSnapshot(
+    String snapshot, {
+    required bool hideMoney,
+    String? widgetSnapshot,
+  }) async {
     if (!_android) return;
-    await _channel.invokeMethod<void>('saveSnapshot', {'snapshot': snapshot, 'widgetSnapshot': widgetSnapshot ?? snapshot, 'hideMoney': hideMoney});
+    await _channel.invokeMethod<void>('saveSnapshot', {
+      'snapshot': snapshot,
+      'widgetSnapshot': widgetSnapshot ?? snapshot,
+      'theme': AppPreferences.instance.themeMode.name,
+      'language': AppPreferences.instance.language,
+      'hideMoney': hideMoney,
+    });
   }
 }

@@ -7,6 +7,7 @@ class MainFlutterWindow: NSWindow {
   private var choices: [[String: String]] = []
   private var selectedID = ""
   private var hiddenAmounts = false
+  private var labels: [String: String] = [:]
 
   override func awakeFromNib() {
     let controller = FlutterViewController()
@@ -34,13 +35,16 @@ class MainFlutterWindow: NSWindow {
         self.statusItem?.button?.toolTip = args["tooltip"] as? String ?? "星账 Astracct"
         self.choices = args["choices"] as? [[String: String]] ?? []
         self.selectedID = args["selected"] as? String ?? ""
+        self.labels = args["labels"] as? [String: String] ?? [:]
         self.hiddenAmounts = args["hidden"] as? Bool ?? false
         result(nil)
       case "reopen": self.openDashboard(); result(nil)
       case "inspect":
         result(["installed": self.statusItem?.button != nil,
                 "title": self.statusItem?.button?.title ?? "", "choices": self.choices.count])
-      case "quit": NSApp.terminate(nil); result(nil)
+      case "quit":
+        (NSApp.delegate as? AppDelegate)?.allowTermination = true
+        NSApp.terminate(nil); result(nil)
       default: result(FlutterMethodNotImplemented)
       }
     }
@@ -88,7 +92,7 @@ class MainFlutterWindow: NSWindow {
     } else { openDashboard() }
   }
   private func actionItem(_ title: String, action: Selector) -> NSMenuItem {
-    let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+    let item = NSMenuItem(title: labels[title] ?? title, action: action, keyEquivalent: "")
     item.target = self
     return item
   }
@@ -98,11 +102,12 @@ class MainFlutterWindow: NSWindow {
     makeKeyAndOrderFront(nil)
     balanceChannel?.invokeMethod("open", arguments: nil)
   }
+  func requestQuit() { balanceChannel?.invokeMethod("quitRequested", arguments: nil) }
   @objc private func refreshBalances() { balanceChannel?.invokeMethod("refresh", arguments: nil) }
   @objc private func togglePrivacy() { balanceChannel?.invokeMethod("privacy", arguments: nil) }
   @objc private func selectBalance(_ item: NSMenuItem) {
     guard let id = item.representedObject as? String else { return }
     balanceChannel?.invokeMethod("selection", arguments: id)
   }
-  @objc private func quit() { NSApp.terminate(nil) }
+  @objc private func quit() { balanceChannel?.invokeMethod("quitRequested", arguments: nil) }
 }

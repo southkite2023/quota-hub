@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_localizations.dart';
 import 'yuashie_account.dart';
 
 class YuashieAccountCard extends StatefulWidget {
@@ -27,7 +28,7 @@ class _YuashieAccountCardState extends State<YuashieAccountCard> {
           ),
         ),
         title: Text(account.user?['displayName'] as String? ?? '登录 Yuashie 账号'),
-        subtitle: Text(
+        subtitle: AppText(
           account.user == null ? '与 yuashie.cn 共用账号' : '账号已登录 · 管理登录与安全设置',
         ),
         trailing: const Icon(Icons.chevron_right),
@@ -80,7 +81,7 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Yuashie 账号')),
+    appBar: AppBar(title: const AppText('Yuashie 账号')),
     body: SafeArea(
       child: ListenableBuilder(
         listenable: account,
@@ -91,40 +92,40 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
               shrinkWrap: true,
               padding: const EdgeInsets.all(28),
               children: [
-                Text(
+                AppText(
                   'YUASHIE ACCOUNT',
                   style: Theme.of(
                     context,
                   ).textTheme.labelMedium?.copyWith(letterSpacing: 2),
                 ),
                 const SizedBox(height: 20),
-                Text(
+                AppText(
                   account.user == null
                       ? '欢迎回来'
                       : '你好，${account.user!['displayName']}',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 12),
-                const Text('一个账号，连接 AstrAcct 与 yuashie.cn。'),
+                const AppText('一个账号，连接 AstrAcct 与 yuashie.cn。'),
                 const SizedBox(height: 28),
                 if (account.user != null) ...[
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.person_outline),
-                    title: Text('@${account.user!['username']}'),
-                    subtitle: const Text('Yuashie 统一账号'),
+                    title: AppText('@${account.user!['username']}'),
+                    subtitle: const AppText('Yuashie 统一账号'),
                   ),
-                  const Text('余额账户配置仍保存在本机。登录不会自动上传 API Key 或订阅链接。'),
+                  const AppText('余额账户配置仍保存在本机。登录不会自动上传 API Key 或订阅链接。'),
                   const SizedBox(height: 20),
                   OutlinedButton.icon(
                     onPressed: account.openSecurity,
                     icon: const Icon(Icons.security_outlined),
-                    label: const Text('账号安全与第三方绑定'),
+                    label: const AppText('账号安全与第三方绑定'),
                   ),
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: account.busy ? null : account.logout,
-                    child: const Text('退出登录'),
+                    child: const AppText('退出登录'),
                   ),
                 ] else ...[
                   if (account.config?['captchaRequired'] != true)
@@ -139,9 +140,9 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
                               autofillHints: const [AutofillHints.username],
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
-                              decoration: const InputDecoration(
-                                labelText: '邮箱 / 手机号',
-                                hintText: '请输入邮箱或已验证的手机号',
+                              decoration: InputDecoration(
+                                labelText: context.tr('邮箱 / 手机号'),
+                                hintText: context.tr('请输入邮箱或已验证的手机号'),
                                 prefixIcon: Icon(Icons.person_outline),
                               ),
                               validator: (s) => s == null || s.trim().isEmpty
@@ -159,12 +160,14 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
                                 if (!account.busy) _login();
                               },
                               decoration: InputDecoration(
-                                labelText: '密码',
+                                labelText: context.tr('密码'),
                                 prefixIcon: const Icon(Icons.lock_outline),
                                 suffixIcon: IconButton(
                                   onPressed: () =>
                                       setState(() => _obscure = !_obscure),
-                                  tooltip: _obscure ? '显示密码' : '隐藏密码',
+                                  tooltip: context.tr(
+                                    _obscure ? '显示密码' : '隐藏密码',
+                                  ),
                                   icon: Icon(
                                     _obscure
                                         ? Icons.visibility_outlined
@@ -185,7 +188,7 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
                                         account.config == null
                                     ? null
                                     : _login,
-                                child: Text(
+                                child: AppText(
                                   account.busy
                                       ? '请稍候…'
                                       : account.config?['captcha'] != null
@@ -203,10 +206,10 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
                       onPressed: account.busy
                           ? null
                           : () => account.browserLogin(),
-                      child: const Text('登录 Yuashie 账号'),
+                      child: const AppText('登录 Yuashie 账号'),
                     ),
                     const SizedBox(height: 12),
-                    const Text('在安全登录页输入邮箱／手机号和密码，完成验证后即可返回软件。'),
+                    const AppText('在安全登录页输入邮箱／手机号和密码，完成验证后即可返回软件。'),
                   ],
                   const SizedBox(height: 8),
                   Row(
@@ -216,11 +219,11 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
                         onPressed: account.busy
                             ? null
                             : () => account.browserLogin(register: true),
-                        child: const Text('注册账号'),
+                        child: const AppText('注册账号'),
                       ),
                       TextButton(
                         onPressed: account.openPasswordHelp,
-                        child: const Text('忘记密码？'),
+                        child: const AppText('忘记密码？'),
                       ),
                     ],
                   ),
@@ -230,7 +233,7 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
                       Expanded(child: Divider()),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('其他方式登录'),
+                        child: AppText('其他方式登录'),
                       ),
                       Expanded(child: Divider()),
                     ],
@@ -252,7 +255,7 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
                               ? () =>
                                     account.browserLogin(provider: provider.$1)
                               : null,
-                          child: Text(
+                          child: AppText(
                             '${provider.$2}${_providerEnabled(provider.$1) ? '' : ' · 待开通'}',
                           ),
                         ),
@@ -263,19 +266,19 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
                   const SizedBox(height: 20),
                   const LinearProgressIndicator(),
                   const SizedBox(height: 12),
-                  const Text('请在浏览器完成登录并点击“确认登录”，然后返回这里。'),
+                  const AppText('请在浏览器完成登录并点击“确认登录”，然后返回这里。'),
                   TextButton(
                     onPressed: account.reopenBrowser,
-                    child: const Text('重新打开登录页'),
+                    child: const AppText('重新打开登录页'),
                   ),
                   TextButton(
                     onPressed: account.cancelBrowserLogin,
-                    child: const Text('取消本次登录'),
+                    child: const AppText('取消本次登录'),
                   ),
                 ],
                 if (account.error != null) ...[
                   const SizedBox(height: 16),
-                  Text(
+                  AppText(
                     account.error!,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
@@ -284,11 +287,11 @@ class _YuashieLoginPageState extends State<YuashieLoginPage> {
                   if (!account.busy)
                     TextButton(
                       onPressed: account.initialize,
-                      child: const Text('重新连接账号服务'),
+                      child: const AppText('重新连接账号服务'),
                     ),
                 ],
                 const SizedBox(height: 28),
-                Text(
+                AppText(
                   '手机号验证、邮箱验证与密码找回待接入发送服务。',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),

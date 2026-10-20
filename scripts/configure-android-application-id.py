@@ -32,3 +32,12 @@ check = path.read_text()
 if target not in check:
     raise SystemExit("Failed to configure Astracct applicationId.")
 print(f"Android applicationId: {target}")
+
+# local_auth 3 requires Android 24+ and an AppCompat launch theme.
+text = path.read_text()
+text = re.sub(r'minSdk\s*=\s*[^\n]+', 'minSdk = 24', text)
+text = re.sub(r'minSdkVersion\s+[^\n]+', 'minSdkVersion 24', text)
+path.write_text(text)
+for style in (ROOT / 'apps/client/android/app/src/main/res').glob('values*/styles.xml'):
+    style.write_text(style.read_text().replace('@android:style/Theme.Light.NoTitleBar', 'Theme.AppCompat.DayNight.NoActionBar')
+        .replace('@android:style/Theme.Black.NoTitleBar', 'Theme.AppCompat.DayNight.NoActionBar'))

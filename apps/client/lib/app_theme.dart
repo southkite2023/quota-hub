@@ -15,7 +15,9 @@ abstract final class AstracctTheme {
       brightness: Brightness.light,
     ),
     scaffoldBackgroundColor: background,
-    inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
+    inputDecorationTheme: const InputDecorationTheme(
+      border: OutlineInputBorder(),
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: background,
       foregroundColor: Color(0xFF202C43),
@@ -31,6 +33,45 @@ abstract final class AstracctTheme {
       ),
     ),
   );
+
+  static ThemeData dark({bool highContrast = false}) => ThemeData(
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: primary,
+      brightness: Brightness.dark,
+      contrastLevel: highContrast ? 1 : 0,
+    ),
+    scaffoldBackgroundColor: const Color(0xFF121620),
+    inputDecorationTheme: const InputDecorationTheme(
+      border: OutlineInputBorder(),
+    ),
+    cardTheme: CardThemeData(
+      color: const Color(0xFF202633),
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+  );
+  static ThemeData accessibleLight() {
+    final base = light();
+    return base.copyWith(
+      colorScheme: ColorScheme.fromSeed(seedColor: primary, contrastLevel: 1),
+    );
+  }
+
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+  static Color mutedFor(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurfaceVariant;
+  static Color errorFor(BuildContext context) =>
+      Theme.of(context).colorScheme.error;
+  static Color successFor(BuildContext context) =>
+      isDark(context) ? const Color(0xFF8CDBB5) : success;
+  static Color warningFor(BuildContext context) =>
+      isDark(context) ? const Color(0xFFFFD08A) : warning;
+  static Color surfaceFor(BuildContext context, String provider) =>
+      isDark(context)
+      ? Theme.of(context).colorScheme.surfaceContainer
+      : accountSurface(provider);
 
   // Colors and geometry from Netweb/public/assets/astracct/styles.css.
   static const mobileBackground = Color(0xFFF5F7FF);
