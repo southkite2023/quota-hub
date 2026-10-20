@@ -372,12 +372,11 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                   }
                 },
               ),
-              if (_android)
-                IconButton(
-                  tooltip: context.tr('余额账户设置'),
-                  icon: const Icon(Icons.settings_outlined),
-                  onPressed: _settings,
-                ),
+              IconButton(
+                tooltip: context.tr('设置'),
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: _settings,
+              ),
               if (_android && _personal.connected)
                 IconButton(
                   tooltip: context.tr('刷新余额'),

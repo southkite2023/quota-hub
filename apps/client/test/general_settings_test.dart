@@ -16,6 +16,7 @@ import 'package:quota_hub/app_settings.dart';
 import 'package:quota_hub/app_theme.dart';
 import 'package:quota_hub/desktop_runtime.dart';
 import 'package:quota_hub/unsaved_changes.dart';
+import 'package:quota_hub/maintenance_io.dart';
 
 class DeviceAuth extends LocalAuthentication {
   bool accepted = true;
@@ -229,6 +230,37 @@ void main() {
     );
     expect(huge, const Rect.fromLTWH(0, 0, 1280, 800));
   });
+
+  test(
+    'download cleanup preserves account files, nested directories and linked targets',
+    () async {
+      final temporary = await Directory.systemTemp.createTemp(
+        'astracct-cleanup-test-',
+      );
+      try {
+        final vault = File('${temporary.path}/accounts.json');
+        await vault.writeAsString('synthetic-vault');
+        final root = await Directory(
+          '${temporary.path}/astracct-updates',
+        ).create();
+        final download = File('${root.path}/update.zip');
+        await download.writeAsBytes([1, 2, 3]);
+        final nested = await Directory('${root.path}/installer').create();
+        await File('${nested.path}/keep').writeAsString('active helper');
+        await Link('${root.path}/linked-vault').create(vault.path);
+        expect(await clearUpdateDirectory(root), 3);
+        expect(await download.exists(), false);
+        expect(await vault.readAsString(), 'synthetic-vault');
+        expect(await File('${nested.path}/keep').exists(), true);
+        expect(await Link('${root.path}/linked-vault').exists(), true);
+        final alias = Link('${temporary.path}/root-alias');
+        await alias.create(root.path);
+        expect(await clearUpdateDirectory(Directory(alias.path)), 0);
+      } finally {
+        await temporary.delete(recursive: true);
+      }
+    },
+  );
 
   testWidgets(
     'lock screen excludes protected content and focus until verified',

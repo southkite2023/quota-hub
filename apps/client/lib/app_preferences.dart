@@ -92,28 +92,40 @@ class AppPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> set(String name, Object? value) {
+  Future<void> _change(
+    Map<String, dynamic> Function(Map<String, dynamic>) change, {
+    bool updateHidden = false,
+  }) {
     Future<void> apply() async {
-      final next = {..._values, name: value};
+      final next = change({..._values});
       await _persist(next);
       _values = next;
-      if (name == 'hidden') hidden = value == true;
+      if (updateHidden) hidden = next['hidden'] == true;
       notifyListeners();
     }
 
-    final operation = _writes == null
-        ? apply()
-        : _writes!.catchError((Object _) {}).then((_) => apply());
+    late final Future<void> operation;
+    operation =
+        (_writes == null
+                ? apply()
+                : _writes!.catchError((Object _) {}).then((_) => apply()))
+            .whenComplete(() {
+              if (identical(_writes, operation)) _writes = null;
+            });
     _writes = operation;
     return operation;
   }
 
+  Future<void> set(String name, Object? value) => _change(
+    (current) => {...current, name: value},
+    updateHidden: name == 'hidden',
+  );
   Future<void> toggleHidden() async {
     if (locked) return;
-    final next = !hidden;
-    await set('hidden', next);
-    hidden = next;
-    notifyListeners();
+    await _change(
+      (current) => {...current, 'hidden': !hidden},
+      updateHidden: true,
+    );
   }
 
   void conceal() {
@@ -171,15 +183,11 @@ class AppPreferences extends ChangeNotifier {
     }
   }
 
-  Future<void> resetAppearance() async {
-    // Preserve security, privacy, desktop behavior and remembered geometry.
-    final next = {..._values}
+  Future<void> resetAppearance() => _change(
+    (current) => current
       ..remove('theme')
       ..remove('language')
       ..remove('highContrast')
-      ..remove('reduceMotion');
-    await _persist(next);
-    _values = next;
-    notifyListeners();
-  }
+      ..remove('reduceMotion'),
+  );
 }

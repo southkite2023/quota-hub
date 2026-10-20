@@ -413,7 +413,7 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
         tooltip: context.tr(tooltip),
         onPressed: action,
         icon: Icon(icon, size: 18),
-        constraints: const BoxConstraints.tightFor(width: 36, height: 40),
+        constraints: const BoxConstraints.tightFor(width: 48, height: 48),
         padding: EdgeInsets.zero,
       );
 }

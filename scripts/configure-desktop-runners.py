@@ -38,6 +38,22 @@ if (windows / 'CMakeLists.txt').exists():
     text, count = re.subn(r'set\(BINARY_NAME "[^"]+"\)', 'set(BINARY_NAME "astracct")', path.read_text())
     if count != 1:
         raise SystemExit('Expected one Windows BINARY_NAME')
+    # local_auth_windows 2.0.2 still uses the experimental WinRT coroutine ABI.
+    # MSVC 14.51 rejects that header unless this documented compatibility opt-in
+    # is set. Limit it to this plugin; remove when the upstream plugin migrates.
+    # https://github.com/MicrosoftDocs/cpp-docs/blob/main/docs/porting/features-deprecated-in-visual-studio.md
+    include = 'include(flutter/generated_plugins.cmake)'
+    compatibility = """
+# local_auth_windows experimental coroutine compatibility (MSVC 14.51+).
+if(MSVC AND TARGET local_auth_windows_plugin)
+  target_compile_definitions(local_auth_windows_plugin PRIVATE
+    _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
+endif()
+"""
+    if '_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS' not in text:
+        if include not in text:
+            raise SystemExit('Expected generated plugin include in Windows CMakeLists.txt')
+        text = text.replace(include, include + compatibility)
     path.write_text(text)
     print('Windows executable: astracct.exe')
 

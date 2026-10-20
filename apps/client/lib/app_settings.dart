@@ -63,13 +63,14 @@ class SettingsCenter extends StatelessWidget {
         '主题、语言、对比度与动画',
         const AppearanceSettings(),
       ),
-      _entry(
-        context,
-        Icons.account_balance_wallet_outlined,
-        '余额账户',
-        '添加、编辑及小组件选择',
-        AccountSettings(connection: accounts, desktop: desktop),
-      ),
+      if (!kIsWeb)
+        _entry(
+          context,
+          Icons.account_balance_wallet_outlined,
+          '余额账户',
+          '添加、编辑及小组件选择',
+          AccountSettings(connection: accounts, desktop: desktop),
+        ),
       _entry(
         context,
         Icons.security_outlined,
@@ -175,7 +176,8 @@ class GeneralSettings extends StatelessWidget {
       return SettingsPage(
         title: '通用',
         children: [
-          RefreshSettings(accounts: accounts, desktop: desktop),
+          if (!kIsWeb) RefreshSettings(accounts: accounts, desktop: desktop),
+          if (kIsWeb) const AppText('网页端刷新由浏览器管理。'),
           if (desktop) ...[
             SwitchListTile(
               title: const AppText('开机启动'),
@@ -252,10 +254,7 @@ class AppearanceSettings extends StatelessWidget {
             initialValue: prefs.language,
             decoration: InputDecoration(labelText: context.tr('语言 / Language')),
             items: const [
-              DropdownMenuItem(
-                value: 'system',
-                child: AppText('跟随系统 / System'),
-              ),
+              DropdownMenuItem(value: 'system', child: AppText('跟随系统')),
               DropdownMenuItem(value: 'zh', child: AppText('简体中文')),
               DropdownMenuItem(value: 'en', child: AppText('English')),
             ],
