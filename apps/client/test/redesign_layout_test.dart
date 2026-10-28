@@ -1,3 +1,5 @@
+import 'package:quota_hub/macos_menu_bar.dart';
+import 'macos_menu_test.dart' show MenuHost;
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -20,7 +22,7 @@ void main() {
         '${wide ? 'desktop' : 'mobile'} ${dark ? 'dark' : 'light'} navigation and layout',
         (tester) async {
           tester.view.physicalSize = wide
-              ? const Size(1180, 820)
+              ? const Size(1180, 1180)
               : const Size(390, 844);
           tester.view.devicePixelRatio = 1;
           addTearDown(tester.view.resetPhysicalSize);
@@ -29,6 +31,8 @@ void main() {
           addTearDown(accounts.dispose);
           final window = DesktopWindowController(host: desktop.WindowHost());
           addTearDown(window.dispose);
+          final menu = MacMenuController(host: MenuHost());
+          addTearDown(menu.dispose);
           final folder = Platform.environment['ASTRACCT_REDESIGN_PREVIEW'];
           if (folder != null) {
             await tester.runAsync(() async {
@@ -77,7 +81,11 @@ void main() {
                 theme: previewTheme,
                 debugShowCheckedModeBanner: false,
                 home: wide
-                    ? DesktopDashboard(accounts: accounts, window: window)
+                    ? DesktopDashboard(
+                        accounts: accounts,
+                        window: window,
+                        menu: menu,
+                      )
                     : AndroidDashboard(
                         accounts: accounts,
                         hideMoney: false,

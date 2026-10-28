@@ -121,7 +121,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(DropdownButton<String>), findsOneWidget);
+      expect(find.byType(DropdownButton<String>), findsNothing);
+      expect(find.byType(Checkbox), findsWidgets);
       await menuHost.action!('selection', menu.choices.first.id);
       await tester.pumpAndSettle();
       expect(menuHost.updates.last['title'], '9.00 USD');

@@ -90,7 +90,13 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
     super.dispose();
   }
 
+  final _shell = GlobalKey<DashboardShellState>();
+
   Future<void> _settings() async {
+    if (_shell.currentState case final state?) {
+      state.openDestination(2);
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SettingsCenter(accounts: _accounts, desktop: true),
@@ -111,6 +117,10 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
   }
 
   Future<void> _manageAccounts() async {
+    if (_shell.currentState case final state?) {
+      state.openDestination(1);
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => AccountSettings(connection: _accounts, desktop: true),
@@ -168,6 +178,10 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
   );
 
   Widget _dashboard() => DashboardShell(
+    key: _shell,
+    accountsBuilder: (_) =>
+        AccountSettings(connection: _accounts, desktop: true),
+    settingsBuilder: (_) => SettingsCenter(accounts: _accounts, desktop: true),
     onAccounts: _manageAccounts,
     onSettings: _settings,
     actions: [
@@ -236,26 +250,7 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
         const SizedBox(height: 16),
         if (_menu != null) ...[
           AppText('macOS 菜单栏 · 左键打开，右键切换余额；关闭行为可在通用设置中修改。'),
-          DropdownButton<String>(
-            isExpanded: true,
-            hint: AppText('菜单栏显示'),
-            value: _menu.choices.any((c) => c.id == _menu.selected)
-                ? _menu.selected
-                : '',
-            items: [
-              const DropdownMenuItem(value: '', child: AppText('仅显示图标')),
-              for (final choice in _menu.choices)
-                DropdownMenuItem(
-                  value: choice.id,
-                  child: AppText(choice.label, overflow: TextOverflow.ellipsis),
-                ),
-            ],
-            onChanged: _menu.ready
-                ? (id) {
-                    if (id != null) unawaited(_selectMenu(id));
-                  }
-                : null,
-          ),
+          AppText('勾选下方数据行，将该项显示在菜单栏；取消勾选后仅显示图标。'),
           if (_menu.error != null)
             AppText(
               _menu.error!,
@@ -320,6 +315,26 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
                     child: BalanceSummary(
                       account: account,
                       hideMoney: _hideMoney,
+                      metricTrailing: _menu == null
+                          ? null
+                          : (metric) {
+                              final choice = MenuBalance(account, metric);
+                              return Tooltip(
+                                message: context.tr('显示在菜单栏'),
+                                child: Checkbox(
+                                  key: ValueKey('menu-metric-${choice.id}'),
+                                  semanticLabel:
+                                      '${context.tr('显示在菜单栏')} · ${choice.label}',
+                                  value: _menu.selected == choice.id,
+                                  onChanged:
+                                      _menu.ready && !_accounts.storageFailed
+                                      ? (checked) => _selectMenu(
+                                          checked == true ? choice.id : '',
+                                        )
+                                      : null,
+                                ),
+                              );
+                            },
                     ),
                   ),
               ],
@@ -427,7 +442,11 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
                           ),
                         ),
                     for (final account in _selected)
-                      BalanceSummary(account: account, hideMoney: _hideMoney),
+                      BalanceSummary(
+                        account: account,
+                        hideMoney: _hideMoney,
+                        showAllMetrics: false,
+                      ),
                   ],
                 ),
               ),

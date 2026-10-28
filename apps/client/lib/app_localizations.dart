@@ -96,7 +96,11 @@ const _english = <String, String>{
   'Mac 的账户密钥和登录会话保存在本机用户数据目录，仅当前系统用户可读写，未额外加密。首次迁移旧钥匙串数据可能需要一次授权；迁移后日常读取不再使用钥匙串。应用锁只保护界面访问。':
       'On Mac, account keys and sessions are stored in local user data with owner-only permissions, without additional encryption. Importing old Keychain data may require authorization once. The app lock protects only the interface.',
 
+  '仪表盘': 'Dashboard',
   '概览': 'Overview',
+  '显示在菜单栏': 'Show in menu bar',
+  '勾选下方数据行，将该项显示在菜单栏；取消勾选后仅显示图标。':
+      'Check a metric below to show it in the menu bar. Uncheck it to show only the icon.',
   '账户状态': 'Account status',
   '本机管理': 'On this device',
   '存储不可用': 'Storage unavailable',

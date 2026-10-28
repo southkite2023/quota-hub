@@ -8,24 +8,30 @@ class BalanceSummary extends StatelessWidget {
     super.key,
     required this.account,
     required this.hideMoney,
+    this.metricTrailing,
+    this.showAllMetrics = true,
   });
   final Account account;
   final bool hideMoney;
+  final bool showAllMetrics;
+  final Widget Function(Metric)? metricTrailing;
   @override
   Widget build(BuildContext context) {
-    final balances = account.metrics
-        .where(
-          (m) => {
-            'available',
-            'available_credit',
-            'month_spent',
-            'remaining',
-            'used',
-            'total',
-            'expires_at',
-          }.contains(m.key),
-        )
-        .toList();
+    final balances = showAllMetrics
+        ? account.metrics
+        : account.metrics
+              .where(
+                (m) => {
+                  'available',
+                  'available_credit',
+                  'month_spent',
+                  'remaining',
+                  'used',
+                  'total',
+                  'expires_at',
+                }.contains(m.key),
+              )
+              .toList();
     return Card(
       color: AstracctTheme.surfaceFor(context, account.provider),
       child: Padding(
@@ -36,7 +42,14 @@ class BalanceSummary extends StatelessWidget {
             Text(account.label, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             for (final metric in balances)
-              MetricLine(metric: metric, hideMoney: hideMoney),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: MetricLine(
+                  metric: metric,
+                  hideMoney: hideMoney,
+                  trailing: metricTrailing?.call(metric),
+                ),
+              ),
             if (balances.isEmpty) AppText('暂无可用余额'),
           ],
         ),
@@ -46,7 +59,12 @@ class BalanceSummary extends StatelessWidget {
 }
 
 class MetricLine extends StatelessWidget {
-  const MetricLine({required this.metric, required this.hideMoney});
+  const MetricLine({
+    required this.metric,
+    required this.hideMoney,
+    this.trailing,
+  });
+  final Widget? trailing;
   final Metric metric;
   final bool hideMoney;
 
@@ -57,7 +75,7 @@ class MetricLine extends StatelessWidget {
       'available_credit' => '可用额度',
       'cash_balance' => '现金余额',
       'bonus' => '赠送余额',
-      'cash' => '充值余额',
+      'cash' => '现金余额',
       'purchased' => '累计购买额度',
       'spent' => '已用额度',
       'month_spent' => '本月费用（UTC）',
@@ -112,7 +130,20 @@ class MetricLine extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 5),
-        AppText(value, style: Theme.of(context).textTheme.titleMedium),
+        if (trailing == null)
+          AppText(value, style: Theme.of(context).textTheme.titleMedium)
+        else
+          Row(
+            children: [
+              Expanded(
+                child: AppText(
+                  value,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              trailing!,
+            ],
+          ),
         if (metric.state == MetricState.stale)
           AppText(
             '上次成功值 · ${_errorLabel(metric.errorCode)}',
