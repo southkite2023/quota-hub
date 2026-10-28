@@ -1,6 +1,12 @@
 # 星账桌面端：Windows + macOS
 
-当前公开测试版：3.0.0+20，[GitHub Release](https://github.com/southkite2023/quota-hub/releases/tag/v3.0.0)。Windows x64 ZIP、Mac Universal ZIP 与 DMG 均已重新构建并通过发布前校验。桌面账户需要在桌面端重新配置，不自动同步手机凭据。
+当前公开测试版：3.1.0+21，[GitHub Release](https://github.com/southkite2023/quota-hub/releases/tag/v3.1.0)。Windows x64 ZIP、Mac Universal ZIP 与 DMG 均已重新构建并通过发布前校验。桌面账户需要在桌面端重新配置，不自动同步手机凭据。
+
+## 3.1.0 固定导航、完整明细与行内选择
+
+左侧导航保持固定，账户、设置和子页面在右侧打开；切换页签后仍保留未保存的编辑。仪表盘显示账户快照中的全部指标（包括 DeepSeek 赠送及现金余额），悬浮窗保留紧凑摘要。
+
+Mac 菜单栏显示内容不再使用主界面下拉框：勾选数据行右侧方框即可显示该指标，勾选另一项会切换，取消当前项恢复只显示图标。现有右键菜单、保存与金额隐藏继续使用同一选择状态。
 
 ## 3.0.0 公开测试版
 

@@ -1,6 +1,6 @@
 # Android 安装包分发
 
-当前公开下载：Android / Windows / macOS 均为 3.0.0+20 全端界面与 Mac 本地凭据测试版。用户最新要求优先通过 [Yuashie 服务器下载](https://yuashie.cn/projects/001/download)，GitHub Releases 保留全部实际安装包和版本说明作为备用来源；macOS 尚未签名公证。
+当前公开下载：Android / Windows / macOS 均为 3.1.0+21 固定导航与完整余额仪表盘测试版。用户最新要求优先通过 [Yuashie 服务器下载](https://yuashie.cn/projects/001/download)，GitHub Releases 保留全部实际安装包和版本说明作为备用来源；macOS 尚未签名公证。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
 - 0.8.0 发布后由 GitHub Releases 提供 ARM64、ARMv7、x86_64 与通用 APK。
@@ -87,3 +87,9 @@ ARM64 17,319,653 字节；通用 49,588,368 字节。实际公开包摘要见 [�
 [v3.0.0](https://github.com/southkite2023/quota-hub/releases/tag/v3.0.0) 已公开并设为 Latest。标签源码 `4ebb26ada42f9795aeb46fbd78050229503a087d`，原生构建 `40619471193`、客户端检查 `40619471101`、服务端检查 `40619471168` 全部通过。发布运行 `40620155689` 验证实际 Windows/macOS 更新替换、重启、回退、DMG 完整性/内容及 APK 包名、版本 3.0.0、构建号 20、既有固定证书后公开七个安装包。不可变摘要与来源见 Release 的 packages.json / SHA256SUMS.txt / provenance.json。
 
 成功后移除本次高权限发布工作流和准备脚本，保留标签中的完整发布来源，防止后续主线构建重复发布。服务器镜像保留 ZIP 给旧客户端更新，额外 DMG 不进入 latest.json；网站/PWA 的发布流程与线上状态以 Netweb 发布记录为准。
+
+## 当前包：3.1.0+21 固定导航与完整余额仪表盘测试版
+
+[v3.1.0](https://github.com/southkite2023/quota-hub/releases/tag/v3.1.0) 已公开并设为 Latest。源码 `b5e8fe1aabe6e183e216abe51b8e9f0987c4fa14`，原生构建 `40647763486`、客户端检查 `40647763487`、服务端检查 `40647763505` 全部通过。发布运行 `40648411298` 完成实际 Windows/Mac 替换、重启、故障回退、DMG 检查及四种 APK 固定证书/版本 3.1.0/构建号 21 校验后公开七个安装包。完整摘要及来源见 Release 的 packages.json、SHA256SUMS.txt 与 provenance.json。
+
+发布成功后移除一次性高权限发布流程，保留标签中的完整来源。以后按用户明确要求完成检查后直接发布并同步官网，不再额外询问是否发布。
