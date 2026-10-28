@@ -1,6 +1,6 @@
 # Android 安装包分发
 
-当前公开下载：Android / Windows / macOS 均为 1.3.1+18 登录钥匙串修复测试版。用户最新要求优先通过 [Yuashie 服务器下载](https://yuashie.cn/projects/001/download)，GitHub Releases 保留全部实际安装包和版本说明作为备用来源；macOS 尚未签名公证。
+当前公开下载：Android / Windows / macOS 均为 3.0.0+20 全端界面与 Mac 本地凭据测试版。用户最新要求优先通过 [Yuashie 服务器下载](https://yuashie.cn/projects/001/download)，GitHub Releases 保留全部实际安装包和版本说明作为备用来源；macOS 尚未签名公证。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
 - 0.8.0 发布后由 GitHub Releases 提供 ARM64、ARMv7、x86_64 与通用 APK。
@@ -81,3 +81,9 @@ ARM64 17,319,653 字节；通用 49,588,368 字节。实际公开包摘要见 [�
 [v1.3.1](https://github.com/southkite2023/quota-hub/releases/tag/v1.3.1) 已公开并设为 Latest。源码 `7b6ac0471bfd1efa0a903c8638daaa2a40bc7195`，原生构建 `38691546153`、客户端检查 `38691546246`、服务端检查 `38691546182` 通过。125 项客户端测试和静态检查通过，macOS 直接使用生产登录凭据存储完成真实钥匙串写入、读取和删除，同时保留余额凭据与窗口/菜单栏检查。
 
 发布运行 `38692725719` 校验不可变构建摘要、Android 1.3.1/build 18 与固定证书、Windows/macOS 完整版本及 Universal 架构，并验证实际桌面替换、重启和失败回退后，创建草稿、上传全部附件并公开。安装器测试从候选包元数据读取版本，不再固定为 1.3.0。清单见 `docs/reports/1.3.1-packages.json`。macOS 更新后需重新登录，余额数据保留；用户机器的真实账号验收仍待完成。一次性发布工作流及准备脚本在成功后移除。
+
+## 当前包：3.0.0+20 全端界面与 Mac 本地凭据测试版
+
+[v3.0.0](https://github.com/southkite2023/quota-hub/releases/tag/v3.0.0) 已公开并设为 Latest。标签源码 `4ebb26ada42f9795aeb46fbd78050229503a087d`，原生构建 `40619471193`、客户端检查 `40619471101`、服务端检查 `40619471168` 全部通过。发布运行 `40620155689` 验证实际 Windows/macOS 更新替换、重启、回退、DMG 完整性/内容及 APK 包名、版本 3.0.0、构建号 20、既有固定证书后公开七个安装包。不可变摘要与来源见 Release 的 packages.json / SHA256SUMS.txt / provenance.json。
+
+成功后移除本次高权限发布工作流和准备脚本，保留标签中的完整发布来源，防止后续主线构建重复发布。服务器镜像保留 ZIP 给旧客户端更新，额外 DMG 不进入 latest.json；网站/PWA 的发布流程与线上状态以 Netweb 发布记录为准。

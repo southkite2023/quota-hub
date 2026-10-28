@@ -2,15 +2,15 @@
 
 Android / Windows / macOS 账户余额与费用查看工具：按账户独立查询，不把不同币种相加；支持前台刷新、可选后台刷新和桌面小组件。
 
-当前 Android / Windows / macOS 公开版本为 [1.3.0+17 应用内更新测试版](https://github.com/southkite2023/quota-hub/releases/tag/v1.3.0)。在「余额账户设置 → 应用更新」检查最新版本、查看说明、下载并确认安装，无需登录或白名单。旧版本需先从官网下载一次新版。
+当前 Android / Windows / macOS 公开版本为 [3.0.0+20 全端界面与 Mac 本地凭据测试版](https://github.com/southkite2023/quota-hub/releases/tag/v3.0.0)。在「余额账户设置 → 应用更新」检查最新版本、查看说明、下载并确认安装，无需登录或白名单。旧版本需先从官网下载一次新版。
 
 [个人网页下载](https://yuashie.cn/projects/001/download) 优先使用 Yuashie 服务器直下，GitHub Releases 保留备用安装包和更新日志。网页与应用共用按平台维护的 SHA-256 校验清单，服务器每十五分钟同步公开版本；iOS 使用 PWA，并在设置中提供检查和重新载入入口。Linux 暂无公开安装包。
 
-Android 沿用 `com.yuashie.astracct` 与固定签名，安装由系统确认。Windows/macOS 在应用目录可写时备份旧程序、退出替换并重启；macOS 仍未配置 Apple 分发签名和公证。123 项 Flutter 测试、各端构建、桌面窗口与安全存储、临时目录中的实际升级和故障回退检查通过；真实服务商与厂商真机完整验收仍待完成。
+Android 沿用 `com.yuashie.astracct` 与固定签名，安装由系统确认。Windows/macOS 在应用目录可写时备份旧程序、退出替换并重启；macOS 仍未配置 Apple 分发签名和公证。146 项 Flutter 测试、各端构建、桌面窗口与安全存储、临时目录中的实际升级和故障回退检查通过；真实服务商与厂商真机完整验收仍待完成。
 
-## 通用功能开发候选
+## 3.0.0 新界面与本地凭据
 
-`2.0.0+19` 新增统一设置、主题与语言、应用锁、隐私管理、桌面行为、帮助与反馈。详见 [通用设置说明](docs/GENERAL_SETTINGS.md)。此源码候选尚未替换公开 1.3.1 安装包。
+`3.0.0+20` 已发布：桌面侧栏、手机底部导航、圆角卡片和统一浅深主题，包含此前开发候选的统一设置、应用锁、隐私与桌面行为。Mac 首次迁移钥匙串后使用本地明文文件（目录 0700、文件 0600），提供拖拽安装 DMG；同一系统用户的其他程序仍可能读取这些文件。详见 [本地凭据说明](docs/LOCAL_CREDENTIALS.md) 与 [通用设置说明](docs/GENERAL_SETTINGS.md)。
 
 ## 已有功能
 

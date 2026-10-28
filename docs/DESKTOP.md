@@ -1,8 +1,8 @@
 # 星账桌面端：Windows + macOS
 
-当前公开测试版：1.3.1+18，[GitHub Release](https://github.com/southkite2023/quota-hub/releases/tag/v1.3.1)。源码 3.0.0+20 为开发候选，尚未重新构建桌面分发包。桌面账户需要在桌面端重新配置，不自动同步手机凭据。
+当前公开测试版：3.0.0+20，[GitHub Release](https://github.com/southkite2023/quota-hub/releases/tag/v3.0.0)。Windows x64 ZIP、Mac Universal ZIP 与 DMG 均已重新构建并通过发布前校验。桌面账户需要在桌面端重新配置，不自动同步手机凭据。
 
-## 3.0.0 开发候选
+## 3.0.0 公开测试版
 
 导航、浅色/深色外观和设置入口采用跨平台统一的圆角卡片风格；桌面宽窗口显示侧栏，窄窗口与手机显示底部导航。保留悬浮窗、菜单栏、托盘与余额查询功能。
 

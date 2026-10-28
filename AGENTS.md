@@ -18,6 +18,8 @@
 
 用户要求通过仓库右侧 GitHub Releases 提供最新版本和 APK 下载。发布时遵守 `docs/RELEASING.md`，上传实际 `.apk` 附件并附上对应版本更新日志；不要仅提供会过期的 Actions artifact 链接。测试包必须明确标注测试状态。
 
+用户补充要求（2026-10-28）：每次发布各平台安装包，必须同时同步 yuashie.cn 网站的版本、下载入口、安装说明及 iOS PWA；核对服务器镜像的实际文件和 SHA-256、公开版本清单以及 deploy-version.json 后，才可宣称网站同步完成。保留旧版本和既有签名，不能仅发布 GitHub 附件后结束。
+
 ## Android 签名
 
 公开 APK 必须使用 `docs/ANDROID_SIGNING.md` 中的固定签名并核对证书指纹。缺少 Secrets 时只允许 CI 验证，不得将随机调试签名包上传到 Releases。私钥及密码保存在被 Git 忽略的 `private/android-signing/`，禁止提交、展示或替换已有密钥。
