@@ -131,7 +131,7 @@ class AccountSettings extends StatelessWidget {
               const SizedBox(height: 20),
             ],
 
-            AppText('多平台、多账户，余额分别显示。凭据在本机加密保存。'),
+            AppText('多平台、多账户，余额分别显示。凭据保存在本机，不会自动上传。'),
             const SizedBox(height: 16),
             if (connection.error != null)
               AppText(
@@ -579,7 +579,7 @@ class _AccountEditorState extends State<AccountEditor> {
                                 ? 'https://你的站点'
                                 : 'https://你的平台/api/balance',
                             helperText: subscription
-                                ? '完整链接仅存于本机安全存储，默认隐藏令牌。'
+                                ? '完整链接仅保存在本机，默认隐藏令牌。'
                                 : null,
                             suffixIcon: subscription
                                 ? IconButton(

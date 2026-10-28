@@ -1,3 +1,4 @@
+import 'package:quota_hub/credential_store.dart';
 // Run only on CI / developer machines: no real accounts or API calls.
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -13,10 +14,13 @@ import 'package:quota_hub/macos_menu_bar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  const storage = FlutterSecureStorage(
-    mOptions: MacOsOptions(
-      accountName: 'com.yuashie.astracct.desktop',
-      usesDataProtectionKeychain: false,
+  final storage = credentialStore(
+    'accounts',
+    const FlutterSecureStorage(
+      mOptions: MacOsOptions(
+        accountName: 'com.yuashie.astracct.desktop',
+        usesDataProtectionKeychain: false,
+      ),
     ),
   );
   final key = 'astracct.desktop.smoke.$pid';
@@ -61,7 +65,10 @@ Future<void> main() async {
     if (await storage.read(key: key) != null)
       throw StateError('Native secure storage delete failed');
     // Test the production login vault separately; unique keys preserve user sessions.
-    const identityStorage = YuashieAccount.sessionStorage;
+    final identityStorage = credentialStore(
+      'identity',
+      YuashieAccount.sessionStorage,
+    );
     await identityStorage.write(
       key: identityKey,
       value: 'synthetic-session-only',

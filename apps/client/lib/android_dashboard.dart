@@ -1,3 +1,4 @@
+import 'dashboard_shell.dart';
 import 'package:flutter/material.dart';
 import 'app_localizations.dart';
 
@@ -111,54 +112,24 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
         }
       });
     }
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 76,
-        titleSpacing: 16,
-        title: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AstracctTheme.primary,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppText(
-                    '星账 Astracct',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                  ),
-                  AppText(
-                    'ANDROID APP',
-                    style: TextStyle(
-                      fontSize: 9,
-                      letterSpacing: 1.4,
-                      color: AstracctTheme.mutedFor(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+    return DashboardShell(
+      onAccounts: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => AccountSettings(connection: connection),
         ),
-        actions: [
-          IconButton(
-            tooltip: context.tr('余额账户设置'),
-            onPressed: widget.onSettings,
-            icon: const Icon(Icons.settings_outlined),
-          ),
-        ],
       ),
+      onSettings: widget.onSettings,
+      actions: [
+        IconButton(
+          tooltip: context.tr(widget.hideMoney ? '显示金额' : '隐藏金额'),
+          onPressed: widget.onToggleMoney,
+          icon: Icon(
+            widget.hideMoney
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+          ),
+        ),
+      ],
       body: SafeArea(
         top: false,
         child: RefreshIndicator(
@@ -172,76 +143,11 @@ class _AndroidDashboardState extends State<AndroidDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: AstracctTheme.isDark(context)
-                              ? [
-                                  Color(0xFF28243D),
-                                  Color(0xFF1E2B42),
-                                  Color(0xFF1B3832),
-                                ]
-                              : [
-                                  Color(0xFFEEECFF),
-                                  Color(0xFFE5F0FF),
-                                  Color(0xFFD9F3EC),
-                                ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(color: AstracctTheme.border),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 32,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AppText(
-                            'ASTRACCT / ANDROID',
-                            style: TextStyle(
-                              fontSize: 11,
-                              letterSpacing: 2,
-                              fontWeight: FontWeight.w800,
-                              color: AstracctTheme.mutedFor(context),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          AppText(
-                            '你的余额，',
-                            style: TextStyle(
-                              fontSize: 40,
-                              height: 1.2,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          AppText(
-                            '一眼看清。',
-                            style: TextStyle(
-                              fontSize: 40,
-                              height: 1.2,
-                              fontWeight: FontWeight.w700,
-                              color: AstracctTheme.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          AppText(
-                            '连接服务商，集中查看每个账户的余额。\n凭据在本机加密保存，账户与币种分别展示。',
-                            style: TextStyle(
-                              color: AstracctTheme.mutedFor(context),
-                              height: 1.8,
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          FilledButton.icon(
-                            onPressed: _editable ? () => _edit() : null,
-                            icon: const Icon(Icons.add),
-                            label: AppText('添加余额账户'),
-                          ),
-                        ],
-                      ),
+                    OverviewStatusCard(
+                      count: connection.entries.length,
+                      busy: connection.busy,
+                      storageFailed: connection.storageFailed,
+                      onAdd: _editable ? () => _edit() : null,
                     ),
                     const SizedBox(height: 18),
                     Card(
@@ -487,10 +393,12 @@ class MobileAccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(20),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(24),
       border: Border.all(
-        color: selected ? AstracctTheme.primary : AstracctTheme.border,
+        color: selected
+            ? Theme.of(context).colorScheme.primary
+            : Colors.transparent,
         width: selected ? 2 : 1,
       ),
     ),
@@ -566,7 +474,7 @@ class MobileAccountCard extends StatelessWidget {
                   error!,
                   style: TextStyle(color: AstracctTheme.errorFor(context)),
                 ),
-              const Divider(color: AstracctTheme.border),
+              const Divider(),
               const SizedBox(height: 6),
               AppText(
                 account.lastSuccessAt == null
@@ -619,7 +527,7 @@ class _Stat extends StatelessWidget {
           ? Theme.of(context).colorScheme.surfaceContainerHighest
           : color,
       borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: AstracctTheme.border),
+      border: Border.all(color: Colors.transparent),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,

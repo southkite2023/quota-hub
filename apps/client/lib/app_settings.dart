@@ -109,7 +109,14 @@ class SettingsCenter extends StatelessWidget {
     Widget page,
   ) => Card(
     child: ListTile(
-      leading: Icon(icon),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(icon, size: 22),
+      ),
       title: AppText(title),
       subtitle: AppText(subtitle),
       trailing: const Icon(Icons.chevron_right),
@@ -307,7 +314,11 @@ class SecuritySettings extends StatelessWidget {
           if (kIsWeb) const AppText('网页版暂不提供系统应用锁。'),
           if (prefs.error != null) AppText(prefs.error!),
           const AppText('应用锁保护此应用的界面访问。桌面小组件独立显示，请按需要隐藏金额或移除小组件。'),
-          const AppText('余额凭据保存在本机安全存储。Yuashie 登录仅用于账号服务，不会自动上传余额密钥。'),
+          AppText(
+            isDesktopClient && defaultTargetPlatform == TargetPlatform.macOS
+                ? 'Mac 的账户密钥和登录会话保存在本机用户数据目录，仅当前系统用户可读写，未额外加密。首次迁移旧钥匙串数据可能需要一次授权；迁移后日常读取不再使用钥匙串。应用锁只保护界面访问。'
+                : '余额凭据保存在本机安全存储。Yuashie 登录仅用于账号服务，不会自动上传余额密钥。',
+          ),
         ],
       );
     },

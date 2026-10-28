@@ -1,3 +1,4 @@
+import 'dashboard_shell.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -341,61 +342,54 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           widgetOpenSerial: _widgetOpenSerial,
           widgetError: _widgetError,
         )
-      : Scaffold(
-          appBar: AppBar(
-            title: AppText('星账 Astracct'),
-            actions: [
-              IconButton(
-                tooltip: _hideMoney ? '显示金额' : '隐藏金额',
-                icon: Icon(
-                  _hideMoney
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                ),
-                onPressed: () {
+      : DashboardShell(
+          onAccounts: _settings,
+          onSettings: _settings,
+          actions: [
+            IconButton(
+              tooltip: _hideMoney ? '显示金额' : '隐藏金额',
+              icon: Icon(
+                _hideMoney
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+              onPressed: () {
+                unawaited(
+                  settingsAction(context, AppPreferences.instance.toggleHidden),
+                );
+                if (_android) unawaited(_syncPersonalWidget());
+                if (_serverConfigured && _liveRaw != null) {
                   unawaited(
-                    settingsAction(
-                      context,
-                      AppPreferences.instance.toggleHidden,
+                    WidgetBridge.showLiveSnapshot(
+                      _liveRaw!,
+                      hideMoney: _hideMoney,
                     ),
                   );
-                  if (_android) unawaited(_syncPersonalWidget());
-                  if (_serverConfigured && _liveRaw != null) {
-                    unawaited(
-                      WidgetBridge.showLiveSnapshot(
-                        _liveRaw!,
-                        hideMoney: _hideMoney,
-                      ),
-                    );
-                  } else if (!_android && !_serverConfigured) {
-                    unawaited(
-                      WidgetBridge.showScenario(
-                        _selected,
-                        hideMoney: _hideMoney,
-                      ),
-                    );
-                  }
-                },
-              ),
+                } else if (!_android && !_serverConfigured) {
+                  unawaited(
+                    WidgetBridge.showScenario(_selected, hideMoney: _hideMoney),
+                  );
+                }
+              },
+            ),
+            IconButton(
+              tooltip: context.tr('设置'),
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: _settings,
+            ),
+            if (_android && _personal.connected)
               IconButton(
-                tooltip: context.tr('设置'),
-                icon: const Icon(Icons.settings_outlined),
-                onPressed: _settings,
+                tooltip: context.tr('刷新余额'),
+                icon: const Icon(Icons.refresh),
+                onPressed: _personal.busy ? null : _personal.refresh,
               ),
-              if (_android && _personal.connected)
-                IconButton(
-                  tooltip: context.tr('刷新余额'),
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _personal.busy ? null : _personal.refresh,
-                ),
-              if (_serverConfigured)
-                IconButton(
-                  tooltip: context.tr('刷新余额'),
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _loadingLive ? null : _refreshLive,
-                ),
-            ],
-          ),
+            if (_serverConfigured)
+              IconButton(
+                tooltip: context.tr('刷新余额'),
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadingLive ? null : _refreshLive,
+              ),
+          ],
           body: FutureBuilder<List<DemoCase>>(
             future: _cases,
             builder: (context, result) {
@@ -645,11 +639,11 @@ class _AccountCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       color: AstracctTheme.surfaceFor(context, account.provider),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         side: BorderSide(
           color: selected
               ? AstracctTheme.successFor(context)
-              : const Color(0xFFDCE2ED),
+              : Colors.transparent,
           width: 2,
         ),
       ),

@@ -1,3 +1,4 @@
+import 'dashboard_shell.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'app_preferences.dart';
@@ -166,45 +167,51 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
     ),
   );
 
-  Widget _dashboard() => Scaffold(
-    appBar: AppBar(
-      title: AppText('星账 Astracct'),
-      actions: [
-        IconButton(
-          tooltip: context.tr(_hideMoney ? '显示金额' : '隐藏金额'),
-          onPressed: _togglePrivacy,
-          icon: Icon(
-            _hideMoney
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
-          ),
+  Widget _dashboard() => DashboardShell(
+    onAccounts: _manageAccounts,
+    onSettings: _settings,
+    actions: [
+      IconButton(
+        tooltip: context.tr(_hideMoney ? '显示金额' : '隐藏金额'),
+        onPressed: _togglePrivacy,
+        icon: Icon(
+          _hideMoney
+              ? Icons.visibility_off_outlined
+              : Icons.visibility_outlined,
         ),
-        IconButton(
-          tooltip: context.tr('刷新余额'),
-          onPressed:
-              _accounts.ready && !_accounts.busy && !_accounts.storageFailed
-              ? _accounts.refresh
-              : null,
-          icon: const Icon(Icons.refresh),
-        ),
-        IconButton(
-          tooltip: context.tr('设置'),
-          onPressed: _settings,
-          icon: const Icon(Icons.settings_outlined),
-        ),
-        IconButton(
-          tooltip: context.tr('打开余额悬浮窗'),
-          onPressed: _accounts.ready && !_window.busy
-              ? () => _window.setFloating(true)
-              : null,
-          icon: const Icon(Icons.picture_in_picture_alt_outlined),
-        ),
-      ],
-    ),
+      ),
+      IconButton(
+        tooltip: context.tr('刷新余额'),
+        onPressed:
+            _accounts.ready && !_accounts.busy && !_accounts.storageFailed
+            ? _accounts.refresh
+            : null,
+        icon: const Icon(Icons.refresh),
+      ),
+      IconButton(
+        tooltip: context.tr('设置'),
+        onPressed: _settings,
+        icon: const Icon(Icons.settings_outlined),
+      ),
+      IconButton(
+        tooltip: context.tr('打开余额悬浮窗'),
+        onPressed: _accounts.ready && !_window.busy
+            ? () => _window.setFloating(true)
+            : null,
+        icon: const Icon(Icons.picture_in_picture_alt_outlined),
+      ),
+    ],
     body: ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        AppText('账户余额', style: Theme.of(context).textTheme.headlineMedium),
+        OverviewStatusCard(
+          count: _accounts.entries.length,
+          busy: _accounts.busy,
+          storageFailed: _accounts.storageFailed,
+          onAdd: _accounts.ready && !_accounts.storageFailed
+              ? _manageAccounts
+              : null,
+        ),
         const SizedBox(height: 8),
         AppText('各账户和币种分别显示。在账户设置中勾选悬浮窗要显示的余额。'),
         const SizedBox(height: 12),
@@ -295,8 +302,30 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
               '${entry.name}：${_accounts.errors[entry.id]}',
               style: TextStyle(color: AstracctTheme.errorFor(context)),
             ),
-        for (final account in _accounts.accounts)
-          BalanceSummary(account: account, hideMoney: _hideMoney),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final columns =
+                constraints.maxWidth >= 680 &&
+                    MediaQuery.textScalerOf(context).scale(14) < 24
+                ? 2
+                : 1;
+            final width = (constraints.maxWidth - (columns - 1) * 16) / columns;
+            return Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                for (final account in _accounts.accounts)
+                  SizedBox(
+                    width: width,
+                    child: BalanceSummary(
+                      account: account,
+                      hideMoney: _hideMoney,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
         const SizedBox(height: 16),
         AppText('悬浮窗可拖动、切换置顶和隐藏金额。退出应用后刷新停止；睡眠和断网可能延迟。'),
       ],

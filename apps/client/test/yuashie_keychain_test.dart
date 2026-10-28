@@ -71,14 +71,20 @@ void main() {
   test(
     'distributed macOS login persists, restores and removes the same secure session',
     () async {
-      final first = YuashieAccount(client: client());
+      final first = YuashieAccount(
+        client: client(),
+        storage: YuashieAccount.sessionStorage,
+      );
       await first.initialize();
       expect(
         await first.login('synthetic@example.test', 'synthetic-password'),
         true,
       );
       expect(first.user?['id'], 7);
-      final restored = YuashieAccount(client: client());
+      final restored = YuashieAccount(
+        client: client(),
+        storage: YuashieAccount.sessionStorage,
+      );
       await restored.initialize();
       expect(restored.user?['id'], 7);
       await restored.logout();
@@ -99,7 +105,10 @@ void main() {
     },
   );
   test('a vault write failure never accepts a memory-only login', () async {
-    final account = YuashieAccount(client: client());
+    final account = YuashieAccount(
+      client: client(),
+      storage: YuashieAccount.sessionStorage,
+    );
     await account.initialize();
     failWrites = true;
     expect(

@@ -1,3 +1,4 @@
+import 'credential_store.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -21,7 +22,9 @@ class YuashieAccount extends ChangeNotifier {
     FlutterSecureStorage? storage,
     Future<bool> Function(Uri)? openBrowser,
   }) : _client = client ?? http.Client(),
-       _storage = storage ?? sessionStorage,
+       _storage = storage != null
+           ? SystemCredentialStore(storage)
+           : credentialStore('identity', sessionStorage),
        _openBrowser =
            openBrowser ??
            ((uri) => launchUrl(
@@ -30,7 +33,7 @@ class YuashieAccount extends ChangeNotifier {
              webOnlyWindowName: '_blank',
            ));
   // Direct-distribution macOS builds have no shared-keychain provisioning profile.
-  // Use the encrypted login keychain with a dedicated service for account sessions.
+  // Legacy login Keychain is retained as the one-time macOS migration source.
   static const sessionStorage = FlutterSecureStorage(
     mOptions: MacOsOptions(
       accountName: 'com.yuashie.astracct.identity',
@@ -41,7 +44,7 @@ class YuashieAccount extends ChangeNotifier {
   static const origin = 'https://yuashie.cn';
   static const _storageKey = 'yuashie_login_session_v1';
   final http.Client _client;
-  final FlutterSecureStorage _storage;
+  final CredentialStore _storage;
   final Future<bool> Function(Uri) _openBrowser;
   Map<String, dynamic>? user, config;
   String? _token, error;
@@ -128,7 +131,7 @@ class YuashieAccount extends ChangeNotifier {
     try {
       await _storage.write(key: _storageKey, value: token);
     } catch (_) {
-      throw const AccountFailure('无法安全保存登录凭证，请检查系统安全存储。');
+      throw const AccountFailure('无法安全保存登录凭证，请检查本机存储权限。');
     }
     _token = token;
     user = account;

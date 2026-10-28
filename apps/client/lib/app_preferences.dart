@@ -1,3 +1,4 @@
+import 'credential_store.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -5,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 
 /// UI preferences never contain provider credentials. The lock flag is kept in
-/// secure storage separately, so a corrupt preference file cannot disable it.
+/// a separate policy store, so a corrupt preference file cannot disable it.
 class AppPreferences extends ChangeNotifier {
   AppPreferences({
     FlutterSecureStorage? security,
@@ -13,20 +14,23 @@ class AppPreferences extends ChangeNotifier {
     Future<String?> Function()? readPreferences,
     Future<void> Function(String)? writePreferences,
     Map<String, dynamic> initialValues = const {},
-  }) : security =
-           security ??
-           const FlutterSecureStorage(
-             mOptions: MacOsOptions(
-               accountName: 'com.yuashie.astracct.settings',
-               usesDataProtectionKeychain: false,
+  }) : security = security != null
+           ? SystemCredentialStore(security)
+           : credentialStore(
+               'settings',
+               const FlutterSecureStorage(
+                 mOptions: MacOsOptions(
+                   accountName: 'com.yuashie.astracct.settings',
+                   usesDataProtectionKeychain: false,
+                 ),
+               ),
              ),
-           ),
        auth = auth ?? LocalAuthentication(),
        _readPreferences = readPreferences,
        _writePreferences = writePreferences,
        _values = {...initialValues};
   static AppPreferences instance = AppPreferences();
-  final FlutterSecureStorage security;
+  final CredentialStore security;
   final LocalAuthentication auth;
   final Future<String?> Function()? _readPreferences;
   final Future<void> Function(String)? _writePreferences;

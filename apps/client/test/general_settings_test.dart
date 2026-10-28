@@ -90,6 +90,7 @@ void main() {
     () async {
       String? stored;
       final prefs = AppPreferences(
+        security: const FlutterSecureStorage(),
         readPreferences: () async => stored,
         writePreferences: (raw) async {
           stored = raw;
@@ -102,6 +103,7 @@ void main() {
         prefs.set('autoHide', true),
       ]);
       final restored = AppPreferences(
+        security: const FlutterSecureStorage(),
         readPreferences: () async => stored,
         writePreferences: (_) async {},
       );
@@ -120,6 +122,7 @@ void main() {
   test('write failures retain previous preference values', () async {
     var fail = false;
     final prefs = AppPreferences(
+      security: const FlutterSecureStorage(),
       writePreferences: (_) async {
         if (fail) throw StateError('disk full');
       },
@@ -139,6 +142,7 @@ void main() {
     () async {
       final auth = DeviceAuth();
       final prefs = AppPreferences(
+        security: const FlutterSecureStorage(),
         auth: auth,
         writePreferences: (_) async {},
         readPreferences: () async => null,
@@ -154,6 +158,7 @@ void main() {
       await prefs.unlock('test');
       expect(prefs.locked, false);
       final restored = AppPreferences(
+        security: const FlutterSecureStorage(),
         auth: auth,
         readPreferences: () async => null,
         writePreferences: (_) async {},
@@ -184,6 +189,7 @@ void main() {
         AppPreferences.lockKey: 'enabled',
       });
       final prefs = AppPreferences(
+        security: const FlutterSecureStorage(),
         readPreferences: () async => '{broken',
         writePreferences: (_) async {},
       );
@@ -198,7 +204,10 @@ void main() {
   test(
     'diagnostics whitelist cannot expose arbitrary preferences or credentials',
     () async {
-      final prefs = AppPreferences(writePreferences: (_) async {});
+      final prefs = AppPreferences(
+        security: const FlutterSecureStorage(),
+        writePreferences: (_) async {},
+      );
       await prefs.set('secret', 'fake-secret-not-for-export');
       final result = diagnosticSummary(
         PackageInfo(

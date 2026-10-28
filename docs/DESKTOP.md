@@ -1,8 +1,20 @@
 # 星账桌面端：Windows + macOS
 
-当前公开测试版：0.10.0+13，[GitHub Release](https://github.com/southkite2023/quota-hub/releases/tag/v0.10.0)。桌面账户需要在桌面端重新配置，不自动同步手机凭据。
+当前公开测试版：1.3.1+18，[GitHub Release](https://github.com/southkite2023/quota-hub/releases/tag/v1.3.1)。源码 3.0.0+20 为开发候选，尚未重新构建桌面分发包。桌面账户需要在桌面端重新配置，不自动同步手机凭据。
+
+## 3.0.0 开发候选
+
+导航、浅色/深色外观和设置入口采用跨平台统一的圆角卡片风格；桌面宽窗口显示侧栏，窄窗口与手机显示底部导航。保留悬浮窗、菜单栏、托盘与余额查询功能。
+
+macOS 凭据已改为本地明文文件，迁移与权限说明见 [LOCAL_CREDENTIALS.md](LOCAL_CREDENTIALS.md)。Windows 仍使用原有系统凭据存储。下文旧版 Keychain 描述仅适用于迁移来源或历史版本。
 
 ## 使用
+
+### macOS 拖拽安装（2.0.0 开发候选）
+
+打开 DMG 后，将左侧 `Astracct.app` 拖到右侧 `Applications` 文件夹，等待复制完成，再从“应用程序”启动星账。安装窗口带有拖拽箭头背景与操作说明。安装后可在桌面右键“星账 Astracct”磁盘图标，选择“推出”；也可在 Finder 侧边栏点击推出按钮。推出不会卸载已复制到“应用程序”的星账。
+
+构建命令：`bash scripts/macos/build-dmg.sh /path/to/Astracct.app /path/to/Astracct-macos.dmg`。需要 macOS、Swift 与可运行的 Finder 会话；脚本会在临时挂载目录中保存安装窗口布局，再生成只读压缩映像。CI 同时保留 ZIP，应用内更新仍使用 ZIP。此项不改变应用版本或签名状态，公开下载仍以已发布清单为准。
 
 1. 打开 Astracct，进入“管理 / 添加余额账户”，选择余额种类、服务商和账户信息，验证后保存。
 2. 勾选“显示在悬浮窗”；主界面仍显示全部账户。可以多选账户，每个币种独立展示，不求和。

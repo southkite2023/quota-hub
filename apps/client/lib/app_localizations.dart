@@ -17,6 +17,8 @@ String translateValue(String source, bool english) {
   if (!english) return source;
   final exact = _english[source];
   if (exact != null) return exact;
+  final accountCount = RegExp(r'^(\d+) 个余额账户$').firstMatch(source);
+  if (accountCount != null) return '${accountCount[1]} balance accounts';
   final refresh = RegExp(r'^每 (\d+) 分钟$').firstMatch(source);
   if (refresh != null) return 'Every ${refresh[1]} minutes';
   if (source.startsWith('上次成功：')) return 'Last success: ${source.substring(5)}';
@@ -74,6 +76,34 @@ class AppText extends StatelessWidget {
 }
 
 const _english = <String, String>{
+  '账户概览': 'Account overview',
+  '综合预览': 'Overview',
+  '零余额': 'Zero balance',
+  '过期缓存': 'Stale cache',
+  '首次失败': 'First query failed',
+  '演示数据 · 未连接真实账户': 'Demo data · No live account connected',
+  '三类账户共用一份版本化快照。金额与流量均为虚构示例。':
+      'Three account types share one versioned snapshot. Balances and traffic are synthetic examples.',
+  'DeepSeek 经自托管服务查询；订阅和阿里云仍为虚构示例。':
+      'DeepSeek is queried through your self-hosted service; subscription and Aliyun values are synthetic examples.',
+  '代理订阅': 'Proxy subscription',
+  '模拟快照：2026-09-22 · 协议 v1': 'Demo snapshot: 2026-09-22 · Schema v1',
+
+  '多平台、多账户，余额分别显示。凭据保存在本机，不会自动上传。':
+      'Separate balances across providers and accounts. Credentials stay on this device.',
+  '完整链接仅保存在本机，默认隐藏令牌。':
+      'The full URL stays on this device. Tokens are hidden by default.',
+  'Mac 的账户密钥和登录会话保存在本机用户数据目录，仅当前系统用户可读写，未额外加密。首次迁移旧钥匙串数据可能需要一次授权；迁移后日常读取不再使用钥匙串。应用锁只保护界面访问。':
+      'On Mac, account keys and sessions are stored in local user data with owner-only permissions, without additional encryption. Importing old Keychain data may require authorization once. The app lock protects only the interface.',
+
+  '概览': 'Overview',
+  '账户状态': 'Account status',
+  '本机管理': 'On this device',
+  '存储不可用': 'Storage unavailable',
+  '正在刷新': 'Refreshing',
+  '各账户与币种分别展示': 'Accounts and currencies shown separately',
+  '星账 · 各账户独立展示': 'Astracct · Independent balances',
+
   "正在验证，请等待完成后离开。":
       "Verification is in progress. Wait for it to finish before leaving.",
   "设置": "Settings",

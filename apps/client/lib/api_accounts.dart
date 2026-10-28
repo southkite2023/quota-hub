@@ -47,7 +47,7 @@ extension ProviderLabel on BalanceProvider {
   };
 }
 
-/// Configuration stays inside the encrypted vault. Never put this object in a snapshot.
+/// Configuration stays inside the credential store. Never put this object in a snapshot.
 class ApiAccount {
   const ApiAccount({required this.id, required this.provider, required this.name,
     required this.key, this.endpoint = '', this.balancePath = 'data.balance', this.currency = 'USD', this.accessKeyId = '', BalanceCategory? category}) : _category = category;
@@ -432,7 +432,7 @@ class ApiAccounts extends ChangeNotifier {
           (item['metrics'] as List).isNotEmpty && item['id'] == '${entry.id}_${(item['metrics'][0]['unit'] as String).toLowerCase()}').toList();
         if (matching.isNotEmpty) _snapshots[entry.id] = {...raw, 'accounts': matching};
       }
-    } catch (_) { /* Ignore invalid snapshots, never the encrypted account configuration. */ }
+    } catch (_) { /* Ignore invalid snapshots, never the credential configuration. */ }
   }
   String _serialize(List<ApiAccount> entries, String? selected, {int? minutes, bool? background, List<String>? selectedIds}) => jsonEncode({
     'version': 1, 'backgroundRefresh': background ?? backgroundRefresh, 'refreshMinutes': minutes ?? refreshMinutes, 'widgetAccountId': selected, 'widgetAccountIds': selectedIds ?? _widgetAccountIds, 'accounts': entries.map((e) => e.toJson()).toList(),

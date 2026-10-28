@@ -21,8 +21,11 @@ const config = {
     {'id': 'github', 'enabled': false},
   ],
 };
-http.Response json(Object data, [int status = 200]) =>
-    http.Response(jsonEncode(data), status, headers: {'content-type': 'application/json; charset=utf-8'});
+http.Response json(Object data, [int status = 200]) => http.Response(
+  jsonEncode(data),
+  status,
+  headers: {'content-type': 'application/json; charset=utf-8'},
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +35,7 @@ void main() {
     () async {
       final requests = <http.Request>[];
       final account = YuashieAccount(
+        storage: const FlutterSecureStorage(),
         client: MockClient((r) async {
           requests.add(r);
           if (r.url.path.endsWith('/config')) return json(config);
@@ -60,6 +64,7 @@ void main() {
   );
   test('bad credentials never become a logged-in account', () async {
     final account = YuashieAccount(
+      storage: const FlutterSecureStorage(),
       client: MockClient(
         (r) async => r.url.path.endsWith('/config')
             ? json(config)
@@ -78,6 +83,7 @@ void main() {
       'yuashie_login_session_v1': token,
     });
     final account = YuashieAccount(
+      storage: const FlutterSecureStorage(),
       client: MockClient((r) async {
         if (r.url.path.endsWith('/config')) return json(config);
         expect(r.headers['Authorization'], 'Bearer $token');
@@ -95,6 +101,7 @@ void main() {
         Uri? launched;
         String? challenge;
         final account = YuashieAccount(
+          storage: const FlutterSecureStorage(),
           openBrowser: (uri) async {
             launched = uri;
             return true;
@@ -137,6 +144,7 @@ void main() {
     'settings login shows credentials, registration, recovery and three providers',
     (tester) async {
       final account = YuashieAccount(
+        storage: const FlutterSecureStorage(),
         client: MockClient((r) async => json(config)),
       );
       await tester.pumpWidget(

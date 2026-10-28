@@ -188,7 +188,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '添加余额账户'))
+          .widget<IconButton>(
+            find.widgetWithIcon(IconButton, Icons.add_rounded),
+          )
           .onPressed,
       isNull,
     );
