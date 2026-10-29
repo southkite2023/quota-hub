@@ -50,6 +50,16 @@ abstract final class AstracctTheme {
           fontWeight: FontWeight.w700,
         ),
       ),
+      popupMenuTheme: PopupMenuThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      menuTheme: MenuThemeData(
+        style: MenuStyle(
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          ),
+        ),
+      ),
       cardTheme: CardThemeData(
         color: scheme.surfaceContainerLow,
         surfaceTintColor: Colors.transparent,

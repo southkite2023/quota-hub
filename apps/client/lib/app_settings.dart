@@ -204,12 +204,9 @@ class GeneralSettings extends StatelessWidget {
               onChanged: (v) =>
                   settingsAction(context, () => prefs.set('startMinimized', v)),
             ),
-            SwitchListTile(
-              title: const AppText('关闭窗口后继续运行'),
-              subtitle: const AppText('通过菜单栏或托盘的“退出星账”彻底退出'),
-              value: prefs.keepRunning,
-              onChanged: (v) =>
-                  settingsAction(context, () => prefs.set('keepRunning', v)),
+            const ListTile(
+              title: AppText('关闭按钮最小化'),
+              subtitle: AppText('收起到菜单栏或系统托盘；通过“退出星账”彻底退出'),
             ),
             SwitchListTile(
               title: const AppText('记住窗口位置和大小'),
@@ -242,6 +239,7 @@ class AppearanceSettings extends StatelessWidget {
         title: '外观与无障碍',
         children: [
           DropdownButtonFormField<String>(
+            borderRadius: BorderRadius.circular(18),
             isExpanded: true,
             key: ValueKey('theme-${prefs.themeMode.name}'),
             initialValue: prefs.themeMode.name,
@@ -255,6 +253,7 @@ class AppearanceSettings extends StatelessWidget {
                 settingsAction(context, () => prefs.set('theme', v)),
           ),
           DropdownButtonFormField<String>(
+            borderRadius: BorderRadius.circular(18),
             isExpanded: true,
             key: ValueKey('language-${prefs.language}'),
             initialValue: prefs.language,

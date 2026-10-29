@@ -118,9 +118,14 @@ Future<void> main() async {
       await Future<void>.delayed(const Duration(milliseconds: 250));
       if (await windowManager.isVisible())
         throw StateError('Close should hide the window');
+      final hiddenStatus = await macMenuChannel.invokeMapMethod<String, dynamic>('inspect');
+      if (hiddenStatus?['installed'] != true || hiddenStatus?['dockVisible'] != false)
+        throw StateError('Close must keep status item and hide Dock');
       await macMenuChannel.invokeMethod<void>('reopen');
       if (!await windowManager.isVisible())
         throw StateError('Hidden window could not reopen');
+      final reopenedStatus = await macMenuChannel.invokeMapMethod<String, dynamic>('inspect');
+      if (reopenedStatus?['dockVisible'] != true) throw StateError('Reopen must restore Dock');
       menu.dispose();
       stdout.writeln(
         'ASTRACCT_MAC_MENU_SMOKE_PASS: NSStatusItem title, close hides, reopen',

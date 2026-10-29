@@ -137,6 +137,19 @@ class YuashieAccount extends ChangeNotifier {
     user = account;
   }
 
+  /// Upload only the account explicitly saved by the user, never the whole local vault.
+  Future<void> saveParameters(Map<String, dynamic> parameters) async {
+    await initialize();
+    if (_token == null || user == null) {
+      throw const AccountFailure('请先登录 Yuashie 账号，再保存参数到云端。');
+    }
+    await _request(
+      '/astracct/parameters',
+      body: {'version': 1, 'parameters': parameters},
+      authenticated: true,
+    );
+  }
+
   Future<bool> login(String identifier, String password) async {
     if (busy) return false;
     busy = true;

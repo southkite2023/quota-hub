@@ -57,7 +57,7 @@ class NativeDesktopWindow implements DesktopWindowHost {
   @override
   Future<void> drag() => windowManager.startDragging();
   @override
-  Future<void> close() => DesktopRuntime.instance.requestQuit();
+  Future<void> close() => DesktopRuntime.instance.closeToTray();
 }
 
 class DesktopWindowController extends ChangeNotifier {

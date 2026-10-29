@@ -131,7 +131,7 @@ class AccountSettings extends StatelessWidget {
               const SizedBox(height: 20),
             ],
 
-            AppText('多平台、多账户，余额分别显示。凭据保存在本机，不会自动上传。'),
+            AppText('多平台、多账户，余额分别显示。登录 Yuashie 后，主动保存的参数将加密存入账号云端，并保留本机副本。'),
             const SizedBox(height: 16),
             if (connection.error != null)
               AppText(
@@ -460,7 +460,7 @@ class _AccountEditorState extends State<AccountEditor> {
                               ),
                               const SizedBox(height: 8),
                               AppText(
-                                '选择种类与服务商，验证成功后保存到本机。',
+                                '选择种类与服务商，验证成功后保存到云端与本机；请先登录 Yuashie。',
                                 style: TextStyle(
                                   color: AstracctTheme.mutedFor(context),
                                 ),
@@ -472,6 +472,7 @@ class _AccountEditorState extends State<AccountEditor> {
                       const SizedBox(height: 24),
                     ],
                     DropdownButtonFormField<BalanceCategory>(
+                      borderRadius: BorderRadius.circular(18),
                       initialValue: _category,
                       isExpanded: true,
                       decoration: InputDecoration(
@@ -509,6 +510,7 @@ class _AccountEditorState extends State<AccountEditor> {
                       const SizedBox(height: 16),
                     ],
                     DropdownButtonFormField<String>(
+                      borderRadius: BorderRadius.circular(18),
                       key: ValueKey(_category),
                       initialValue: _choice,
                       isExpanded: true,
@@ -579,7 +581,7 @@ class _AccountEditorState extends State<AccountEditor> {
                                 ? 'https://你的站点'
                                 : 'https://你的平台/api/balance',
                             helperText: subscription
-                                ? '完整链接仅保存在本机，默认隐藏令牌。'
+                                ? '完整链接随参数加密保存到账号云端与本机，默认隐藏令牌。'
                                 : null,
                             suffixIcon: subscription
                                 ? IconButton(
@@ -656,7 +658,7 @@ class _AccountEditorState extends State<AccountEditor> {
                                 : 'API Key',
                             helperText: widget.account == null
                                 ? (cloud
-                                      ? 'Secret 仅用于本机签名，不随请求发送。暂不支持临时 STS 凭据。'
+                                      ? 'Secret 用于本机签名，并加密保存到账号云端。暂不支持临时 STS 凭据。'
                                       : '仅向所选平台发送，查询账单不会调用模型。')
                                 : '留空保留原凭据；更换平台、地址或密钥 ID 后需重新输入。',
                             helperMaxLines: 3,

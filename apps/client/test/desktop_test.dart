@@ -394,7 +394,7 @@ void main() {
         ),
       );
       expect(tester.takeException(), isNull);
-      await tester.tap(find.byTooltip('退出应用'));
+      await tester.tap(find.byTooltip('最小化'));
       await tester.pump();
       expect(host.closed, true);
       await tester.pumpWidget(const SizedBox());

@@ -38,10 +38,16 @@ class MainFlutterWindow: NSWindow {
         self.labels = args["labels"] as? [String: String] ?? [:]
         self.hiddenAmounts = args["hidden"] as? Bool ?? false
         result(nil)
+      case "minimizeToMenuBar":
+        self.installStatusItem()
+        self.orderOut(nil)
+        NSApp.setActivationPolicy(.accessory)
+        result(nil)
       case "reopen": self.openDashboard(); result(nil)
       case "inspect":
         result(["installed": self.statusItem?.button != nil,
-                "title": self.statusItem?.button?.title ?? "", "choices": self.choices.count])
+                "title": self.statusItem?.button?.title ?? "", "choices": self.choices.count,
+                "dockVisible": NSApp.activationPolicy() == .regular])
       case "quit":
         (NSApp.delegate as? AppDelegate)?.allowTermination = true
         NSApp.terminate(nil); result(nil)
@@ -97,6 +103,7 @@ class MainFlutterWindow: NSWindow {
     return item
   }
   @objc func openDashboard() {
+    NSApp.setActivationPolicy(.regular)
     NSApp.activate(ignoringOtherApps: true)
     if isMiniaturized { deminiaturize(nil) }
     makeKeyAndOrderFront(nil)

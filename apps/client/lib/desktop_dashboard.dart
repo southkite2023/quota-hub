@@ -1,3 +1,4 @@
+import 'yuashie_account.dart';
 import 'dashboard_shell.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -27,7 +28,11 @@ class DesktopDashboard extends StatefulWidget {
 
 class _DesktopDashboardState extends State<DesktopDashboard> {
   late final ApiAccounts _accounts =
-      widget.accounts ?? ApiAccounts(store: DesktopAccountsStore());
+      widget.accounts ??
+      ApiAccounts(
+        store: DesktopAccountsStore(),
+        uploadParameters: YuashieAccount.shared.saveParameters,
+      );
   late final DesktopWindowController _window =
       widget.window ?? DesktopWindowController();
   bool get _hideMoney => AppPreferences.instance.hideAmounts;
@@ -249,7 +254,7 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
         ),
         const SizedBox(height: 16),
         if (_menu != null) ...[
-          AppText('macOS 菜单栏 · 左键打开，右键切换余额；关闭行为可在通用设置中修改。'),
+          AppText('macOS 菜单栏 · 左键打开，右键切换余额；关闭窗口收起至菜单栏；通过菜单退出。'),
           AppText('勾选下方数据行，将该项显示在菜单栏；取消勾选后仅显示图标。'),
           if (_menu.error != null)
             AppText(
@@ -257,7 +262,7 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
               style: TextStyle(color: AstracctTheme.errorFor(context)),
             ),
           OutlinedButton.icon(
-            onPressed: () => _window.close(),
+            onPressed: () => DesktopRuntime.instance.requestQuit(),
             icon: const Icon(Icons.power_settings_new),
             label: AppText('退出星账'),
           ),
@@ -403,7 +408,7 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
                       Icons.open_in_full,
                       _window.busy ? null : () => _window.setFloating(false),
                     ),
-                    _tool('退出应用', Icons.close, () => _window.close()),
+                    _tool('最小化', Icons.close, () => _window.close()),
                   ],
                 ),
               ),

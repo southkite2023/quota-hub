@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:quota_hub/yuashie_account.dart';
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -23,6 +24,27 @@ http.Response credits(String total, String usage) => http.Response(jsonEncode({
 }), 200);
 
 void main() {
+  test('cloud upload must succeed before local parameters are replaced', () async {
+    final vault = Vault();
+    var failCloud = false;
+    final uploaded = <Map<String, dynamic>>[];
+    final model = ApiAccounts(store: vault,
+      api: BalanceApi(clientFactory: () => MockClient((_) async => credits('10', '1'))),
+      uploadParameters: (value) async {
+        if (failCloud) throw const AccountFailure('cloud unavailable');
+        uploaded.add(value);
+      });
+    addTearDown(model.dispose);
+    await model.initialize(query: false);
+    expect(await model.save(account('first')), true);
+    expect(uploaded.single['key'], 'fake-key');
+    final original = vault.data;
+    failCloud = true;
+    expect(await model.save(account('second')), false);
+    expect(vault.data, original);
+    expect(model.entries.single.id, 'first');
+    expect(model.error, 'cloud unavailable');
+  });
   test('OpenRouter uses management endpoint and subtracts decimals exactly', () async {
     final api = BalanceApi(clientFactory: () => MockClient((r) async {
       expect(r.url.toString(), 'https://openrouter.ai/api/v1/credits');

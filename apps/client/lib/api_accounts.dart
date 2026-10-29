@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'yuashie_account.dart';
 import 'dart:convert';
 import 'dart:math';
 
@@ -159,8 +160,9 @@ String decimalHundredth(Object value) {
 }
 
 class BalanceApi {
-  BalanceApi({http.Client Function()? clientFactory, DateTime Function()? now})
+  BalanceApi({http.Client Function()? clientFactory, DateTime Function()? now, this.uploadParameters})
       : _factory = clientFactory ?? http.Client.new, _now = now ?? DateTime.now;
+  final Future<void> Function(Map<String, dynamic>)? uploadParameters;
   final DateTime Function() _now;
   final http.Client Function() _factory;
   Future<Map<String, dynamic>> fetch(ApiAccount account) async {
@@ -290,7 +292,8 @@ class BalanceApi {
 }
 
 class ApiAccounts extends ChangeNotifier {
-  ApiAccounts({AccountsStore? store, BalanceApi? api, DateTime Function()? now}) : _now = now ?? DateTime.now, _store = store ?? AndroidAccountsStore(), _api = api ?? BalanceApi();
+  ApiAccounts({AccountsStore? store, BalanceApi? api, DateTime Function()? now, this.uploadParameters}) : _now = now ?? DateTime.now, _store = store ?? AndroidAccountsStore(), _api = api ?? BalanceApi();
+  final Future<void> Function(Map<String, dynamic>)? uploadParameters;
   final DateTime Function() _now;
   final AccountsStore _store;
   final BalanceApi _api;
@@ -446,12 +449,14 @@ class ApiAccounts extends ChangeNotifier {
       final index = next.indexWhere((e) => e.id == candidate.id);
       if (index < 0 && next.length >= 20) throw const DeepSeekFailure('最多保存 20 个账户。', 'provider_unavailable');
       final snapshot = await _api.fetch(candidate);
+      await uploadParameters?.call(candidate.toJson());
       if (index < 0) { next.add(candidate); } else { next[index] = candidate; }
       final selected = index < 0 ? [..._widgetAccountIds, candidate.id] : [..._widgetAccountIds];
       await _store.write(_serialize(next, selected.isEmpty ? null : selected.first, selectedIds: selected));
       _entries = next; _widgetAccountIds = selected; _snapshots[candidate.id] = snapshot; errors.remove(candidate.id);
       return true;
-    } on DeepSeekFailure catch (failure) { error = failure.message; return false; }
+    } on AccountFailure catch (failure) { error = failure.message; return false; }
+    on DeepSeekFailure catch (failure) { error = failure.message; return false; }
     catch (_) { error = '本机保存失败，原有账户未更改。'; return false; }
     finally { busy = false; _scheduleRefresh(); _emit(); }
   }

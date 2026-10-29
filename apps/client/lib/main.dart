@@ -1,3 +1,4 @@
+import 'yuashie_account.dart';
 import 'dashboard_shell.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -106,7 +107,9 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   String? _liveRaw;
   String? _liveError;
   bool _loadingLive = false;
-  final _personal = ApiAccounts();
+  final _personal = ApiAccounts(
+    uploadParameters: YuashieAccount.shared.saveParameters,
+  );
   bool get _android =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
   bool get _serverConfigured => !_android && liveConfigured;

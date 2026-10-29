@@ -65,7 +65,7 @@ class DesktopRuntime extends ChangeNotifier with WindowListener, TrayListener {
         await _updateTrayMenu();
         trayReady = true;
       } catch (_) {
-        error = '系统托盘初始化失败，关闭窗口时将退出应用。';
+        error = '系统托盘初始化失败，关闭窗口时将最小化到任务栏。';
       }
     } else {
       trayReady = true;
@@ -104,7 +104,7 @@ class DesktopRuntime extends ChangeNotifier with WindowListener, TrayListener {
     AppPreferences.instance.addListener(_languageChanged);
     ready = true;
     if (AppPreferences.instance.startMinimized && trayReady)
-      await windowManager.hide();
+      await minimizeToTray();
   }
 
   String? _lastLanguage;
@@ -141,7 +141,23 @@ class DesktopRuntime extends ChangeNotifier with WindowListener, TrayListener {
     notifyListeners();
   }
 
+  Future<void> minimizeToTray() async {
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      await macMenuChannel.invokeMethod<void>('minimizeToMenuBar');
+    } else if (trayReady) {
+      await windowManager.setSkipTaskbar(true);
+      await windowManager.hide();
+    } else {
+      await windowManager.minimize();
+    }
+  }
+
   Future<void> reveal() async {
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      await macMenuChannel.invokeMethod<void>('reopen');
+    } else {
+      await windowManager.setSkipTaskbar(false);
+    }
     await windowManager.show();
     if (await windowManager.isMinimized()) await windowManager.restore();
     await windowManager.focus();
@@ -211,19 +227,19 @@ class DesktopRuntime extends ChangeNotifier with WindowListener, TrayListener {
   }
 
   @override
-  void onWindowClose() async {
+  void onWindowClose() => unawaited(closeToTray());
+
+  Future<void> closeToTray() async {
     if (_closing) return;
     if (await EditSession.beforeClose?.call() == false) return;
-    if (AppPreferences.instance.keepRunning && trayReady) {
+    {
       AppPreferences.instance.conceal();
       try {
         await _saveBounds();
       } catch (_) {
         error = '窗口位置保存失败。';
       }
-      await windowManager.hide();
-    } else {
-      await requestQuit();
+      await minimizeToTray();
     }
   }
 

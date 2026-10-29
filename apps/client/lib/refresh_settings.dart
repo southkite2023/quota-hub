@@ -65,6 +65,7 @@ class RefreshSettings extends StatelessWidget {
           AppText('自动刷新', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
           DropdownButtonFormField<int>(
+            borderRadius: BorderRadius.circular(18),
             key: ValueKey(accounts.refreshMinutes),
             initialValue: accounts.refreshMinutes,
             decoration: InputDecoration(labelText: context.tr('刷新间隔')),
@@ -98,7 +99,7 @@ class RefreshSettings extends StatelessWidget {
           if (!desktop)
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const AppText('后台继续刷新'),
+              title: const AppText('在通知栏保留并后台刷新'),
               subtitle: const AppText('显示常驻通知，增加耗电；可在通知中停止'),
               value: accounts.backgroundRefresh,
               onChanged:
