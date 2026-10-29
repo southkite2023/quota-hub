@@ -1,6 +1,6 @@
 # Android 安装包分发
 
-当前公开下载：Android / Windows / macOS 均为 3.1.0+21 固定导航与完整余额仪表盘测试版。用户最新要求优先通过 [Yuashie 服务器下载](https://yuashie.cn/projects/001/download)，GitHub Releases 保留全部实际安装包和版本说明作为备用来源；macOS 尚未签名公证。
+当前公开下载：Android / Windows / macOS 均为 3.2.0+22 后台收起与账号云端参数测试版。用户最新要求优先通过 [Yuashie 服务器下载](https://yuashie.cn/projects/001/download)，GitHub Releases 保留全部实际安装包和版本说明作为备用来源；macOS 尚未签名公证。
 
 - [最新版本及更新日志](https://github.com/southkite2023/quota-hub/releases/latest)
 - 0.8.0 发布后由 GitHub Releases 提供 ARM64、ARMv7、x86_64 与通用 APK。
