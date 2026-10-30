@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -30,38 +31,78 @@ http.Response json(Object data, [int status = 200]) => http.Response(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
-  test(
-    'website credentials create a native session; only the session is persisted',
-    () async {
-      final requests = <http.Request>[];
-      final account = YuashieAccount(
-        storage: const FlutterSecureStorage(),
-        client: MockClient((r) async {
-          requests.add(r);
-          if (r.url.path.endsWith('/config')) return json(config);
-          if (r.url.path.endsWith('/native/login'))
-            return json({'user': person, 'token': token});
-          if (r.url.path.endsWith('/logout')) return json({'ok': true});
-          return json({'message': 'Unexpected'}, 404);
-        }),
-      );
-      await account.initialize();
-      expect(
-        await account.login('website@example.test', 'private-password'),
-        true,
-      );
-      expect(account.user!['id'], 7);
-      final saved = await const FlutterSecureStorage().readAll();
-      expect(saved.values, [token]);
-      expect(jsonEncode(saved), isNot(contains('private-password')));
-      expect(requests.last.headers['Origin'], YuashieAccount.origin);
-      await account.logout();
-      expect(requests.last.headers['Authorization'], 'Bearer $token');
-      expect(account.user, null);
-      expect(await const FlutterSecureStorage().readAll(), isEmpty);
-      account.dispose();
-    },
-  );
+  test('parameter requests use authenticated HTTPS and support cross-device restore and delete', () async {
+    final rows = <Map<String, dynamic>>[];
+    final requests = <http.Request>[];
+    final account = YuashieAccount(
+      storage: const FlutterSecureStorage(),
+      client: MockClient((r) async {
+        requests.add(r);
+        if (r.url.path.endsWith('/config')) return json(config);
+        if (r.url.path.endsWith('/native/login'))
+          return json({'user': person, 'token': token});
+        expect(r.url.scheme, 'https');
+        expect(r.headers['Authorization'], 'Bearer $token');
+        if (r.method == 'POST') {
+          rows.add(Map<String, dynamic>.from(jsonDecode(r.body)['parameters']));
+          return json({'ok': true});
+        }
+        if (r.method == 'DELETE') {
+          rows.clear();
+          return json({'ok': true});
+        }
+        return json({
+          'version': 1,
+          'accounts': rows.map((p) => {'parameters': p}).toList(),
+        });
+      }),
+    );
+    await account.initialize();
+    await account.login('example', 'password');
+    await account.saveParameters({
+      'id': 'work',
+      'key': 'test-key',
+    }, expectedUserId: '7');
+    expect((await account.downloadParameters()).single['key'], 'test-key');
+    await account.deleteParameters('work', expectedUserId: '7');
+    expect(await account.downloadParameters(), isEmpty);
+    final before = requests.length;
+    await expectLater(
+      account.saveParameters({'id': 'work'}, expectedUserId: '8'),
+      throwsA(isA<AccountFailure>()),
+    );
+    expect(requests.length, before);
+    account.dispose();
+  });
+  test('website credentials create a native session; only the session is persisted', () async {
+    final requests = <http.Request>[];
+    final account = YuashieAccount(
+      storage: const FlutterSecureStorage(),
+      client: MockClient((r) async {
+        requests.add(r);
+        if (r.url.path.endsWith('/config')) return json(config);
+        if (r.url.path.endsWith('/native/login'))
+          return json({'user': person, 'token': token});
+        if (r.url.path.endsWith('/logout')) return json({'ok': true});
+        return json({'message': 'Unexpected'}, 404);
+      }),
+    );
+    await account.initialize();
+    expect(
+      await account.login('website@example.test', 'private-password'),
+      true,
+    );
+    expect(account.user!['id'], 7);
+    final saved = await const FlutterSecureStorage().readAll();
+    expect(saved.values, [token]);
+    expect(jsonEncode(saved), isNot(contains('private-password')));
+    expect(requests.last.headers['Origin'], YuashieAccount.origin);
+    await account.logout();
+    expect(requests.last.headers['Authorization'], 'Bearer $token');
+    expect(account.user, null);
+    expect(await const FlutterSecureStorage().readAll(), isEmpty);
+    account.dispose();
+  });
   test('bad credentials never become a logged-in account', () async {
     final account = YuashieAccount(
       storage: const FlutterSecureStorage(),
@@ -94,52 +135,49 @@ void main() {
     expect(account.user!['username'], 'website_user');
     account.dispose();
   });
-  test(
-    'browser authorization binds exchange to an app-held verifier and can be cancelled',
-    () {
-      fakeAsync((async) {
-        Uri? launched;
-        String? challenge;
-        final account = YuashieAccount(
-          storage: const FlutterSecureStorage(),
-          openBrowser: (uri) async {
-            launched = uri;
-            return true;
-          },
-          client: MockClient((r) async {
-            if (r.url.path.endsWith('/requests')) {
-              challenge = (jsonDecode(r.body) as Map)['challenge'] as String;
-              return json({'id': '11111111-1111-1111-1111-111111111111'});
-            }
-            final payload = jsonDecode(r.body) as Map;
-            expect(payload['verifier'], isNot(challenge));
-            expect(payload['verifier'], hasLength(43));
-            return json({'user': person, 'token': token});
-          }),
-        );
-        account.browserLogin(provider: 'github');
-        async.flushMicrotasks();
-        expect(launched!.host, 'yuashie.cn');
-        expect(launched!.path, '/api/auth/oauth/github/start');
-        expect(
-          launched!.queryParameters['redirect'],
-          startsWith('/auth/approve?request='),
-        );
-        expect(launched.toString(), isNot(contains('verifier')));
-        async.elapse(const Duration(seconds: 3));
-        async.flushMicrotasks();
-        expect(account.user!['id'], 7);
-        expect(account.busy, false);
-        account.browserLogin();
-        async.flushMicrotasks();
-        account.cancelBrowserLogin();
-        async.elapse(const Duration(seconds: 4));
-        async.flushMicrotasks();
-        expect(account.busy, false);
-        account.dispose();
-      });
-    },
-  );
+  test('browser authorization binds exchange to an app-held verifier and can be cancelled', () {
+    fakeAsync((async) {
+      Uri? launched;
+      String? challenge;
+      final account = YuashieAccount(
+        storage: const FlutterSecureStorage(),
+        openBrowser: (uri) async {
+          launched = uri;
+          return true;
+        },
+        client: MockClient((r) async {
+          if (r.url.path.endsWith('/requests')) {
+            challenge = (jsonDecode(r.body) as Map)['challenge'] as String;
+            return json({'id': '11111111-1111-1111-1111-111111111111'});
+          }
+          final payload = jsonDecode(r.body) as Map;
+          expect(payload['verifier'], isNot(challenge));
+          expect(payload['verifier'], hasLength(43));
+          return json({'user': person, 'token': token});
+        }),
+      );
+      account.browserLogin(provider: 'github');
+      async.flushMicrotasks();
+      expect(launched!.host, 'yuashie.cn');
+      expect(launched!.path, '/api/auth/oauth/github/start');
+      expect(
+        launched!.queryParameters['redirect'],
+        startsWith('/auth/approve?request='),
+      );
+      expect(launched.toString(), isNot(contains('verifier')));
+      async.elapse(const Duration(seconds: 3));
+      async.flushMicrotasks();
+      expect(account.user!['id'], 7);
+      expect(account.busy, false);
+      account.browserLogin();
+      async.flushMicrotasks();
+      account.cancelBrowserLogin();
+      async.elapse(const Duration(seconds: 4));
+      async.flushMicrotasks();
+      expect(account.busy, false);
+      account.dispose();
+    });
+  });
   testWidgets(
     'settings login shows credentials, registration, recovery and three providers',
     (tester) async {

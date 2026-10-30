@@ -220,7 +220,7 @@ class AccountSettings extends StatelessWidget {
                                         builder: (context) => AlertDialog(
                                           title: AppText('移除 ${account.name}？'),
                                           content: AppText(
-                                            '删除本机凭据与余额，其他账户不受影响。',
+                                            '云端账户将同时从账号云端移除，并同步到其他设备；未上传的历史账户仅从本机移除。',
                                           ),
                                           actions: [
                                             TextButton(

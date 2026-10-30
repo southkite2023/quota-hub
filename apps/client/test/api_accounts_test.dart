@@ -1,6 +1,9 @@
 import 'dart:async';
+
 import 'package:quota_hub/yuashie_account.dart';
+
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -14,122 +17,418 @@ class Vault implements AccountsStore {
   @override
   Future<String?> read() async => data;
   @override
-  Future<void> write(String value) async { if (fail) throw Exception(); data = value; }
+  Future<void> write(String value) async {
+    if (fail) throw Exception();
+    data = value;
+  }
 }
-ApiAccount account(String id, {BalanceProvider provider = BalanceProvider.openrouter,
-  String endpoint = '', String key = 'fake-key'}) => ApiAccount(id: id, provider: provider,
-    name: id, key: key, endpoint: endpoint);
-http.Response credits(String total, String usage) => http.Response(jsonEncode({
-  'data': {'total_credits': total, 'total_usage': usage},
-}), 200);
+
+ApiAccount account(
+  String id, {
+  BalanceProvider provider = BalanceProvider.openrouter,
+  String endpoint = '',
+  String key = 'fake-key',
+}) => ApiAccount(
+  id: id,
+  provider: provider,
+  name: id,
+  key: key,
+  endpoint: endpoint,
+);
+http.Response credits(String total, String usage) => http.Response(
+  jsonEncode({
+    'data': {'total_credits': total, 'total_usage': usage},
+  }),
+  200,
+);
+
+class CloudIdentity extends YuashieAccount {
+  List<Map<String, dynamic>> remote = [];
+  bool fail = false;
+  Completer<void>? downloading;
+  @override
+  Future<void> initialize() async {
+    ready = true;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> downloadParameters() async {
+    final result = remote.map((a) => Map<String, dynamic>.from(a)).toList();
+    if (downloading != null) await downloading!.future;
+    if (fail) throw const AccountFailure('offline');
+    return result;
+  }
+
+  @override
+  Future<void> saveParameters(
+    Map<String, dynamic> p, {
+    String? expectedUserId,
+  }) async {
+    if (fail) throw const AccountFailure('offline');
+    if (expectedUserId != user?['id']?.toString())
+      throw const AccountFailure('switched');
+    remote.removeWhere((a) => a['id'] == p['id']);
+    remote.add(p);
+  }
+
+  @override
+  Future<void> deleteParameters(
+    String id, {
+    required String expectedUserId,
+  }) async {
+    if (fail) throw const AccountFailure('offline');
+    remote.removeWhere((a) => a['id'] == id);
+  }
+
+  void changed() => notifyListeners();
+}
 
 void main() {
-  test('cloud upload must succeed before local parameters are replaced', () async {
+  test('cloud restore persists credentials and isolates an account switch even offline', () async {
+    final auth = CloudIdentity()
+      ..user = {'id': 1}
+      ..remote = [account('cloud').toJson()];
     final vault = Vault();
-    var failCloud = false;
-    final uploaded = <Map<String, dynamic>>[];
-    final model = ApiAccounts(store: vault,
-      api: BalanceApi(clientFactory: () => MockClient((_) async => credits('10', '1'))),
-      uploadParameters: (value) async {
-        if (failCloud) throw const AccountFailure('cloud unavailable');
-        uploaded.add(value);
-      });
+    final model = ApiAccounts(store: vault, identity: auth);
     addTearDown(model.dispose);
     await model.initialize(query: false);
-    expect(await model.save(account('first')), true);
-    expect(uploaded.single['key'], 'fake-key');
-    final original = vault.data;
-    failCloud = true;
-    expect(await model.save(account('second')), false);
-    expect(vault.data, original);
-    expect(model.entries.single.id, 'first');
-    expect(model.error, 'cloud unavailable');
+    expect(model.entries.single.key, 'fake-key');
+    expect(jsonDecode(vault.data!)['cloudOwners'], {'cloud': '1'});
+    auth.user = {'id': 2};
+    auth.fail = true;
+    await model.syncCloud();
+    expect(model.entries, isEmpty);
+    expect(jsonDecode(vault.data!)['accounts'], isEmpty);
+    expect(model.cloudError, isNotNull);
+    auth.fail = false;
+    auth.remote = [account('second').toJson()];
+    await model.syncCloud();
+    expect(model.entries.single.id, 'second');
+    expect(model.cloudError, isNull);
   });
-  test('OpenRouter uses management endpoint and subtracts decimals exactly', () async {
-    final api = BalanceApi(clientFactory: () => MockClient((r) async {
-      expect(r.url.toString(), 'https://openrouter.ai/api/v1/credits');
-      expect(r.headers['Authorization'], 'Bearer fake-key');
-      expect(r.followRedirects, false);
-      return credits('10.10', '0.20');
-    }));
-    final snapshot = await api.fetch(account('work'));
-    final parsed = DemoCase.fromJson({...snapshot, 'name': 'test'});
-    expect(parsed.accounts.single.id, 'work_usd');
-    expect(parsed.accounts.single.metrics.first.value, '9.90');
-    expect(jsonEncode(snapshot), isNot(contains('fake-key')));
-    expect(decimalDifference('0.1', '0.2'), '-0.1');
-    expect(decimalValue(1e-7), '0.0000001');
+
+  test(
+    'two devices restore updated keys and propagate cloud deletion',
+    () async {
+      final auth = CloudIdentity()..user = {'id': 1};
+      final first = ApiAccounts(
+        store: Vault(),
+        identity: auth,
+        api: BalanceApi(
+          clientFactory: () => MockClient((_) async => credits('10', '1')),
+        ),
+      );
+      final second = ApiAccounts(store: Vault(), identity: auth);
+      addTearDown(first.dispose);
+      addTearDown(second.dispose);
+      await first.initialize(query: false);
+      await second.initialize(query: false);
+      expect(await first.save(account('shared')), true);
+      await second.syncCloud();
+      expect(second.entries.single.key, 'fake-key');
+      expect(await first.save(account('shared', key: 'new-key')), true);
+      await second.syncCloud();
+      expect(second.entries.single.key, 'new-key');
+      expect(second.raw, isNot(contains('new-key')));
+      expect(await second.remove('shared'), true);
+      await first.syncCloud();
+      expect(first.entries, isEmpty);
+      await second.syncCloud();
+      expect(second.entries, isEmpty);
+    },
+  );
+  test(
+    'switch while cloud response is in flight never exposes old credentials',
+    () async {
+      final auth = CloudIdentity()
+        ..user = {'id': 1}
+        ..remote = [account('old').toJson()];
+      final model = ApiAccounts(store: Vault(), identity: auth);
+      addTearDown(model.dispose);
+      await model.initialize(query: false);
+      auth.downloading = Completer<void>();
+      final sync = model.syncCloud();
+      auth.user = {'id': 2};
+      auth.remote = [account('new').toJson()];
+      auth.changed();
+      expect(model.entries, isEmpty);
+      expect(model.raw, isNot(contains('old')));
+      auth.downloading!.complete();
+      auth.downloading = null;
+      await sync;
+      await Future<void>.delayed(Duration.zero);
+      expect(model.entries.single.id, 'new');
+    },
+  );
+  test('cloud failure preserves same-account cache and never uploads legacy entries', () async {
+    final auth = CloudIdentity()
+      ..user = {'id': 1}
+      ..remote = [account('cloud').toJson()];
+    final vault = Vault()
+      ..data = jsonEncode({
+        'version': 1,
+        'accounts': [account('legacy').toJson()],
+      });
+    final model = ApiAccounts(store: vault, identity: auth);
+    addTearDown(model.dispose);
+    await model.initialize(query: false);
+    expect(model.entries.map((a) => a.id), ['legacy', 'cloud']);
+    expect(auth.remote.length, 1);
+    final saved = vault.data;
+    auth.fail = true;
+    await model.syncCloud();
+    expect(vault.data, saved);
+    expect(model.entries.length, 2);
+    expect(await model.remove('cloud'), false);
+    expect(model.entries.length, 2);
   });
+  test(
+    'local write failure preserves cache and retries cloud restore',
+    () async {
+      final auth = CloudIdentity()..user = {'id': 1};
+      final vault = Vault();
+      final model = ApiAccounts(store: vault, identity: auth);
+      addTearDown(model.dispose);
+      await model.initialize(query: false);
+      auth.remote = [account('recover').toJson()];
+      vault.fail = true;
+      await model.syncCloud();
+      expect(model.entries, isEmpty);
+      vault.fail = false;
+      await model.syncCloud();
+      expect(model.entries.single.id, 'recover');
+    },
+  );
+  test(
+    'cloud upload must succeed before local parameters are replaced',
+    () async {
+      final vault = Vault();
+      var failCloud = false;
+      final uploaded = <Map<String, dynamic>>[];
+      final model = ApiAccounts(
+        store: vault,
+        api: BalanceApi(
+          clientFactory: () => MockClient((_) async => credits('10', '1')),
+        ),
+        uploadParameters: (value) async {
+          if (failCloud) throw const AccountFailure('cloud unavailable');
+          uploaded.add(value);
+        },
+      );
+      addTearDown(model.dispose);
+      await model.initialize(query: false);
+      expect(await model.save(account('first')), true);
+      expect(uploaded.single['key'], 'fake-key');
+      final original = vault.data;
+      failCloud = true;
+      expect(await model.save(account('second')), false);
+      expect(vault.data, original);
+      expect(model.entries.single.id, 'first');
+      expect(model.error, 'cloud unavailable');
+    },
+  );
+  test(
+    'OpenRouter uses management endpoint and subtracts decimals exactly',
+    () async {
+      final api = BalanceApi(
+        clientFactory: () => MockClient((r) async {
+          expect(r.url.toString(), 'https://openrouter.ai/api/v1/credits');
+          expect(r.headers['Authorization'], 'Bearer fake-key');
+          expect(r.followRedirects, false);
+          return credits('10.10', '0.20');
+        }),
+      );
+      final snapshot = await api.fetch(account('work'));
+      final parsed = DemoCase.fromJson({...snapshot, 'name': 'test'});
+      expect(parsed.accounts.single.id, 'work_usd');
+      expect(parsed.accounts.single.metrics.first.value, '9.90');
+      expect(jsonEncode(snapshot), isNot(contains('fake-key')));
+      expect(decimalDifference('0.1', '0.2'), '-0.1');
+      expect(decimalValue(1e-7), '0.0000001');
+    },
+  );
   test('custom endpoint sends key only to selected HTTPS host and extracts numeric field', () async {
-    final api = BalanceApi(clientFactory: () => MockClient((r) async {
-      expect(r.url.host, 'balance.example'); expect(r.followRedirects, false);
-      return http.Response('{"data":{"balance":0}}', 200);
-    }));
-    final snapshot = await api.fetch(account('custom', provider: BalanceProvider.custom, endpoint: 'https://balance.example/check'));
+    final api = BalanceApi(
+      clientFactory: () => MockClient((r) async {
+        expect(r.url.host, 'balance.example');
+        expect(r.followRedirects, false);
+        return http.Response('{"data":{"balance":0}}', 200);
+      }),
+    );
+    final snapshot = await api.fetch(
+      account(
+        'custom',
+        provider: BalanceProvider.custom,
+        endpoint: 'https://balance.example/check',
+      ),
+    );
     expect((snapshot['accounts'] as List).first['metrics'][0]['value'], '0');
   });
-  for (final url in ['http://balance.example', 'https://key@balance.example', 'https://balance.example?key=x', 'https://balance.example#key']) {
+  for (final url in [
+    'http://balance.example',
+    'https://key@balance.example',
+    'https://balance.example?key=x',
+    'https://balance.example#key',
+  ]) {
     test('rejects unsafe endpoint before sending: $url', () async {
       var sent = false;
-      final api = BalanceApi(clientFactory: () => MockClient((_) async { sent = true; return credits('1', '0'); }));
-      await expectLater(api.fetch(account('custom', provider: BalanceProvider.custom, endpoint: url)), throwsA(isA<DeepSeekFailure>()));
+      final api = BalanceApi(
+        clientFactory: () => MockClient((_) async {
+          sent = true;
+          return credits('1', '0');
+        }),
+      );
+      await expectLater(
+        api.fetch(
+          account('custom', provider: BalanceProvider.custom, endpoint: url),
+        ),
+        throwsA(isA<DeepSeekFailure>()),
+      );
       expect(sent, false);
     });
   }
-  test('missing custom field and permission failure never become zero', () async {
-    final api = BalanceApi(clientFactory: () => MockClient((_) async => http.Response('{"data":{}}', 200)));
-    await expectLater(api.fetch(account('custom', provider: BalanceProvider.custom, endpoint: 'https://balance.example')), throwsA(isA<DeepSeekFailure>()));
-    final denied = BalanceApi(clientFactory: () => MockClient((_) async => http.Response('sensitive-server-body', 403)));
-    await expectLater(denied.fetch(account('router')), throwsA(isA<DeepSeekFailure>().having((e) => e.message, 'message', contains('Management Key'))));
-  });
-  test('custom error envelope cannot masquerade as a successful balance', () async {
-    final api = BalanceApi(clientFactory: () => MockClient((_) async => http.Response('{"success":false,"data":{"balance":100}}', 200)));
-    await expectLater(api.fetch(account('custom', provider: BalanceProvider.custom, endpoint: 'https://balance.example')), throwsA(isA<DeepSeekFailure>()));
-  });
+  test(
+    'missing custom field and permission failure never become zero',
+    () async {
+      final api = BalanceApi(
+        clientFactory: () =>
+            MockClient((_) async => http.Response('{"data":{}}', 200)),
+      );
+      await expectLater(
+        api.fetch(
+          account(
+            'custom',
+            provider: BalanceProvider.custom,
+            endpoint: 'https://balance.example',
+          ),
+        ),
+        throwsA(isA<DeepSeekFailure>()),
+      );
+      final denied = BalanceApi(
+        clientFactory: () => MockClient(
+          (_) async => http.Response('sensitive-server-body', 403),
+        ),
+      );
+      await expectLater(
+        denied.fetch(account('router')),
+        throwsA(
+          isA<DeepSeekFailure>().having(
+            (e) => e.message,
+            'message',
+            contains('Management Key'),
+          ),
+        ),
+      );
+    },
+  );
+  test(
+    'custom error envelope cannot masquerade as a successful balance',
+    () async {
+      final api = BalanceApi(
+        clientFactory: () => MockClient(
+          (_) async =>
+              http.Response('{"success":false,"data":{"balance":100}}', 200),
+        ),
+      );
+      await expectLater(
+        api.fetch(
+          account(
+            'custom',
+            provider: BalanceProvider.custom,
+            endpoint: 'https://balance.example',
+          ),
+        ),
+        throwsA(isA<DeepSeekFailure>()),
+      );
+    },
+  );
   test('OneAPI validates currency mode without auth, divides usage cents and avoids unlimited fake balance', () async {
     var unlimited = false;
-    final api = BalanceApi(clientFactory: () => MockClient((r) async {
-      expect(r.url.host, 'one.example'); expect(r.followRedirects, false);
-      if (r.url.path == '/api/status') {
-        expect(r.headers.containsKey('Authorization'), false);
-        return http.Response('{"success":true,"data":{"display_in_currency":true}}', 200);
-      }
-      expect(r.headers['Authorization'], 'Bearer fake-key');
-      if (r.url.path.endsWith('/subscription')) return http.Response(jsonEncode({'hard_limit_usd': unlimited ? 100000000 : 10}), 200);
-      expect(r.url.path, '/v1/dashboard/billing/usage');
-      return http.Response('{"total_usage":125}', 200);
-    }));
-    final config = account('one', provider: BalanceProvider.oneapi, endpoint: 'https://one.example');
-    final parsed = DemoCase.fromJson({...await api.fetch(config), 'name': 'test'});
+    final api = BalanceApi(
+      clientFactory: () => MockClient((r) async {
+        expect(r.url.host, 'one.example');
+        expect(r.followRedirects, false);
+        if (r.url.path == '/api/status') {
+          expect(r.headers.containsKey('Authorization'), false);
+          return http.Response(
+            '{"success":true,"data":{"display_in_currency":true}}',
+            200,
+          );
+        }
+        expect(r.headers['Authorization'], 'Bearer fake-key');
+        if (r.url.path.endsWith('/subscription'))
+          return http.Response(
+            jsonEncode({'hard_limit_usd': unlimited ? 100000000 : 10}),
+            200,
+          );
+        expect(r.url.path, '/v1/dashboard/billing/usage');
+        return http.Response('{"total_usage":125}', 200);
+      }),
+    );
+    final config = account(
+      'one',
+      provider: BalanceProvider.oneapi,
+      endpoint: 'https://one.example',
+    );
+    final parsed = DemoCase.fromJson({
+      ...await api.fetch(config),
+      'name': 'test',
+    });
     expect(parsed.accounts.single.metrics.first.value, '8.75');
     unlimited = true;
-    final infinite = DemoCase.fromJson({...await api.fetch(config), 'name': 'test'});
+    final infinite = DemoCase.fromJson({
+      ...await api.fetch(config),
+      'name': 'test',
+    });
     expect(infinite.accounts.single.metrics.first.value, null);
     expect(infinite.accounts.single.metrics.first.state, MetricState.unknown);
   });
   test('OneAPI token units are not presented as money', () async {
     var requests = 0;
-    final api = BalanceApi(clientFactory: () => MockClient((r) async {
-      requests++; return http.Response('{"success":true,"data":{"display_in_currency":false}}', 200);
-    }));
-    await expectLater(api.fetch(account('one', provider: BalanceProvider.oneapi, endpoint: 'https://one.example')), throwsA(isA<DeepSeekFailure>()));
+    final api = BalanceApi(
+      clientFactory: () => MockClient((r) async {
+        requests++;
+        return http.Response(
+          '{"success":true,"data":{"display_in_currency":false}}',
+          200,
+        );
+      }),
+    );
+    await expectLater(
+      api.fetch(
+        account(
+          'one',
+          provider: BalanceProvider.oneapi,
+          endpoint: 'https://one.example',
+        ),
+      ),
+      throwsA(isA<DeepSeekFailure>()),
+    );
     expect(requests, 1);
   });
   test('accounts stay isolated on refresh failure, replacement, widget selection and removal', () async {
     final vault = Vault();
     var failFirst = false;
-    final manager = ApiAccounts(store: vault, api: BalanceApi(clientFactory: () => MockClient((r) async {
-      final key = r.headers['Authorization'];
-      if (key == 'Bearer invalid' || (failFirst && key == 'Bearer first-key')) return http.Response('', 401);
-      return credits(key == 'Bearer first-key' ? '20' : '40', '0');
-    })));
+    final manager = ApiAccounts(
+      store: vault,
+      api: BalanceApi(
+        clientFactory: () => MockClient((r) async {
+          final key = r.headers['Authorization'];
+          if (key == 'Bearer invalid' ||
+              (failFirst && key == 'Bearer first-key'))
+            return http.Response('', 401);
+          return credits(key == 'Bearer first-key' ? '20' : '40', '0');
+        }),
+      ),
+    );
     await manager.initialize();
     expect(await manager.save(account('first', key: 'first-key')), true);
     expect(await manager.save(account('second', key: 'second-key')), true);
     expect(manager.accounts.map((a) => a.id), ['first_usd', 'second_usd']);
     expect(await manager.save(account('first', key: 'invalid')), false);
     expect(manager.entries.first.key, 'first-key');
-    failFirst = true; await manager.refresh();
+    failFirst = true;
+    await manager.refresh();
     expect(manager.accounts.first.metrics.first.state, MetricState.stale);
     expect(manager.accounts.last.metrics.first.state, MetricState.ok);
     expect(manager.errors.keys, ['first']);
@@ -148,12 +447,40 @@ void main() {
     expect(jsonDecode(vault.data!)['accounts'], isEmpty);
   });
   test('legacy migration record restores one DeepSeek account without leaking keys to snapshot', () async {
-    final vault = Vault()..data = jsonEncode({'version': 1, 'widgetAccountId': 'legacy_deepseek', 'accounts': [
-      {'id': 'legacy_deepseek', 'provider': 'deepseek', 'name': '旧账户', 'key': 'legacy-key'},
-    ]});
-    final manager = ApiAccounts(store: vault, api: BalanceApi(clientFactory: () => MockClient((_) async => http.Response(jsonEncode({
-      'is_available': true, 'balance_infos': [{'currency': 'CNY', 'total_balance': '3', 'granted_balance': '1', 'topped_up_balance': '2'}],
-    }), 200))));
+    final vault = Vault()
+      ..data = jsonEncode({
+        'version': 1,
+        'widgetAccountId': 'legacy_deepseek',
+        'accounts': [
+          {
+            'id': 'legacy_deepseek',
+            'provider': 'deepseek',
+            'name': '旧账户',
+            'key': 'legacy-key',
+          },
+        ],
+      });
+    final manager = ApiAccounts(
+      store: vault,
+      api: BalanceApi(
+        clientFactory: () => MockClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'is_available': true,
+              'balance_infos': [
+                {
+                  'currency': 'CNY',
+                  'total_balance': '3',
+                  'granted_balance': '1',
+                  'topped_up_balance': '2',
+                },
+              ],
+            }),
+            200,
+          ),
+        ),
+      ),
+    );
     await manager.initialize();
     expect(manager.accounts.single.id, 'legacy_deepseek_cny');
     expect(manager.accounts.single.label, contains('旧账户'));
@@ -169,7 +496,10 @@ void main() {
   });
   test('concurrent save and removal cannot overwrite each other', () async {
     final pending = Completer<http.Response>();
-    final manager = ApiAccounts(store: Vault(), api: BalanceApi(clientFactory: () => MockClient((_) => pending.future)));
+    final manager = ApiAccounts(
+      store: Vault(),
+      api: BalanceApi(clientFactory: () => MockClient((_) => pending.future)),
+    );
     await manager.initialize();
     final saving = manager.save(account('first'));
     expect(await manager.save(account('second')), false);

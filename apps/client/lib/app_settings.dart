@@ -581,7 +581,7 @@ class HelpSettings extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.all(16),
-            child: AppText('本机余额查询无需登录 Yuashie 账号。登录不会自动同步余额账户和密钥。'),
+            child: AppText('登录 Yuashie 后自动恢复云端账户与密钥；保存的参数加密存储，同一账号可跨设备同步。'),
           ),
         ],
       ),

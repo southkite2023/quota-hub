@@ -1,13 +1,19 @@
 import 'yuashie_account.dart';
 import 'dashboard_shell.dart';
+
 import 'dart:async';
 import 'dart:convert';
+
 import 'app_preferences.dart';
 import 'app_settings.dart';
 import 'desktop_runtime.dart';
+
 import 'package:flutter/material.dart';
+
 import 'app_localizations.dart';
+
 import 'package:flutter/services.dart';
+
 import 'api_accounts.dart';
 import 'account_settings.dart';
 import 'app_theme.dart';
@@ -32,6 +38,7 @@ class _DesktopDashboardState extends State<DesktopDashboard> {
       ApiAccounts(
         store: DesktopAccountsStore(),
         uploadParameters: YuashieAccount.shared.saveParameters,
+        identity: YuashieAccount.shared,
       );
   late final DesktopWindowController _window =
       widget.window ?? DesktopWindowController();

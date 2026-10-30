@@ -202,8 +202,8 @@ const _english = <String, String>{
   "复制诊断信息": "Copy diagnostics",
   "使用指南": "User guide",
   "是否必须登录？": "Do I need to sign in?",
-  "本机余额查询无需登录 Yuashie 账号。登录不会自动同步余额账户和密钥。":
-      "Local balance queries do not require a Yuashie account. Signing in does not sync balance accounts or keys.",
+  "登录 Yuashie 后自动恢复云端账户与密钥；保存的参数加密存储，同一账号可跨设备同步。":
+      "Sign in to restore your cloud accounts and keys. Saved parameters are encrypted and synced across devices using the same account.",
   "为什么关闭窗口后仍在运行？": "Why is the app running after I close the window?",
   "桌面端可在“通用”设置中更改关闭行为。选择菜单栏或托盘的“退出星账”即可完全退出。":
       "Change the close behavior in General settings. Choose Quit Astracct from the menu bar or tray to exit.",

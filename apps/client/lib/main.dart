@@ -1,15 +1,20 @@
 import 'yuashie_account.dart';
 import 'dashboard_shell.dart';
+
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'app_preferences.dart';
 import 'app_security_gate.dart';
 import 'app_settings.dart';
 import 'desktop_runtime.dart';
 
 import 'package:flutter/material.dart';
+
 import 'app_localizations.dart';
+
 import 'package:flutter/foundation.dart';
 
 import 'api_accounts.dart';
@@ -21,6 +26,7 @@ import 'desktop_dashboard.dart';
 import 'desktop_window.dart';
 export 'balance_summary.dart';
 import 'background_refresh.dart';
+
 import 'package:flutter/services.dart';
 
 import 'snapshot.dart';
@@ -109,6 +115,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   bool _loadingLive = false;
   final _personal = ApiAccounts(
     uploadParameters: YuashieAccount.shared.saveParameters,
+    identity: YuashieAccount.shared,
   );
   bool get _android =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -146,9 +153,9 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   Future<void> _initializePersonal() async {
     await _loadWidgetTarget();
     if (mounted) {
-      final cached = await const MethodChannel(
-        'quota_hub/widget',
-      ).invokeMethod<String>('readSnapshot').catchError((_) => null);
+      final cached = await const MethodChannel('quota_hub/widget')
+          .invokeMethod<String>('readSnapshot')
+          .catchError((_) => null);
       await _personal.initialize(query: false);
       _personal.restoreSnapshot(cached);
       if (mounted) setState(() {});
@@ -225,9 +232,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
   Future<void> _resumePersonal() async {
     try {
-      final snapshot = await const MethodChannel(
-        'quota_hub/widget',
-      ).invokeMethod<String>('readSnapshot');
+      final snapshot = await const MethodChannel('quota_hub/widget')
+          .invokeMethod<String>('readSnapshot');
       if (mounted && _personal.ready && !_personal.busy) {
         _personal.restoreSnapshot(snapshot);
         setState(() {});

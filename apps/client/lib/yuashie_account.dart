@@ -1,7 +1,9 @@
 import 'credential_store.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -57,6 +59,7 @@ class YuashieAccount extends ChangeNotifier {
     String path, {
     Map<String, dynamic>? body,
     bool authenticated = false,
+    bool delete = false,
   }) async {
     try {
       final headers = <String, String>{
@@ -68,7 +71,9 @@ class YuashieAccount extends ChangeNotifier {
         headers['Authorization'] = 'Bearer $_token';
       final uri = Uri.parse('$origin/api$path');
       final response =
-          await (body == null
+          await (delete
+                  ? _client.delete(uri, headers: headers)
+                  : body == null
                   ? _client.get(uri, headers: headers)
                   : _client.post(uri, headers: headers, body: jsonEncode(body)))
               .timeout(const Duration(seconds: 15));
@@ -93,7 +98,9 @@ class YuashieAccount extends ChangeNotifier {
     }
   }
 
-  Future<void> initialize() => _initializing ??= _initialize();
+  Future<void> initialize() => ready && error == null
+      ? Future.value()
+      : (_initializing ??= _initialize());
   Future<void> _initialize() async {
     error = null;
     try {
@@ -108,6 +115,7 @@ class YuashieAccount extends ChangeNotifier {
           if (e.status == 401) {
             await _storage.delete(key: _storageKey);
             _token = null;
+            user = null;
           } else {
             rethrow;
           }
@@ -138,8 +146,14 @@ class YuashieAccount extends ChangeNotifier {
   }
 
   /// Upload only the account explicitly saved by the user, never the whole local vault.
-  Future<void> saveParameters(Map<String, dynamic> parameters) async {
+  Future<void> saveParameters(
+    Map<String, dynamic> parameters, {
+    String? expectedUserId,
+  }) async {
     await initialize();
+    if (expectedUserId != null && user?['id']?.toString() != expectedUserId) {
+      throw const AccountFailure('登录账号已改变，请重新保存。');
+    }
     if (_token == null || user == null) {
       throw const AccountFailure('请先登录 Yuashie 账号，再保存参数到云端。');
     }
@@ -147,6 +161,34 @@ class YuashieAccount extends ChangeNotifier {
       '/astracct/parameters',
       body: {'version': 1, 'parameters': parameters},
       authenticated: true,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> downloadParameters() async {
+    if (_token == null || user == null)
+      throw const AccountFailure('请重新登录后同步账户。');
+    final result = await _request('/astracct/parameters', authenticated: true);
+    if (result['version'] != 1 || result['accounts'] is! List) {
+      throw const AccountFailure('云端账户格式无效。');
+    }
+    return (result['accounts'] as List)
+        .map(
+          (row) => Map<String, dynamic>.from((row as Map)['parameters'] as Map),
+        )
+        .toList();
+  }
+
+  Future<void> deleteParameters(
+    String id, {
+    required String expectedUserId,
+  }) async {
+    if (_token == null || user?['id']?.toString() != expectedUserId) {
+      throw const AccountFailure('登录账号已改变，请重新操作。');
+    }
+    await _request(
+      '/astracct/parameters/${Uri.encodeComponent(id)}',
+      authenticated: true,
+      delete: true,
     );
   }
 
@@ -195,12 +237,10 @@ class YuashieAccount extends ChangeNotifier {
         throw const AccountFailure('登录请求无效。');
       final redirect = '/auth/approve?request=$id';
       final uri = provider != null
-          ? Uri.parse(
-              '$origin/api/auth/oauth/$provider/start',
-            ).replace(queryParameters: {'redirect': redirect})
-          : Uri.parse(
-              '$origin/${register ? 'register' : 'login'}',
-            ).replace(queryParameters: {'redirect': redirect});
+          ? Uri.parse('$origin/api/auth/oauth/$provider/start')
+                .replace(queryParameters: {'redirect': redirect})
+          : Uri.parse('$origin/${register ? 'register' : 'login'}')
+                .replace(queryParameters: {'redirect': redirect});
       if (flow != _flow) return;
       browserUrl = uri;
       waitingForBrowser = true;
