@@ -99,3 +99,5 @@ ARM64 17,319,653 字节；通用 49,588,368 字节。实际公开包摘要见 [�
 [v3.4.0](https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0) 公开 Linux 测试版：x86_64 / ARM64，各提供 DEB、RPM、AppImage、tar.gz；附 SHA256SUMS.txt 与 linux-packages.json。源码 6e880ec860c79f4afd8a4a9c3939efb735e2d9e5，构建、包验证和发布运行 41564346823。其他平台保持 3.3.0。
 
 要求 glibc 2.39+、GTK 3、libsecret、Ayatana AppIndicator 和可用的系统密钥环；验证基线 Ubuntu 24.04。其他发行版、真实凭据与长期后台行为待验收。关闭窗口保留任务栏入口；Linux 无系统身份解锁或自动安装更新，用户手动安装新版本。AppImage 仍需要系统图形库，可用 --appimage-extract-and-run。
+
+官网八个 Linux 镜像包已逐一核对大小和 GitHub SHA-256，公开链接均返回 HTTP 200；公开 linuxPackages 清单含八种组合，其他平台保持 3.3.0。网站提交 14174ae8a3e2b4b8be8868901c89c4f15021c7a2 的部署运行 41565740337 成功，deploy-version.json 与 PWA v11 已核对。详见 docs/reports/3.4.0-linux.json。精简系统中文显示需安装 Noto CJK 字体，下载页已提供命令。

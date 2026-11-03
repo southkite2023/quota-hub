@@ -1,0 +1,107 @@
+{
+  "version": "3.4.0+24",
+  "source": "6e880ec860c79f4afd8a4a9c3939efb735e2d9e5",
+  "build_and_publish_run": 41564346823,
+  "website_commit": "14174ae8a3e2b4b8be8868901c89c4f15021c7a2",
+  "website_deploy_run": 41565740337,
+  "verified_at": "2026-11-03",
+  "verification": "Eight public URLs return HTTP 200 with expected sizes; all server files match GitHub Release SHA-256. Client: 158 tests per architecture. Website: 49 tests and 5 mirror tests.",
+  "packages": [
+    {
+      "platform": "linux",
+      "architecture": "aarch64",
+      "format": "AppImage",
+      "version": "3.4.0",
+      "file": "Astracct-Linux-3.4.0-aarch64.AppImage",
+      "bytes": 11872776,
+      "sha256": "227669b49f7335e355758bd2d262086b24925eb4719718f4416f5514d9eba8bc",
+      "source": "https://github.com/southkite2023/quota-hub/releases/download/v3.4.0/Astracct-Linux-3.4.0-aarch64.AppImage",
+      "releaseUrl": "https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0",
+      "url": "https://yuashie.cn/downloads/astracct/v3.4.0/Astracct-Linux-3.4.0-aarch64.AppImage"
+    },
+    {
+      "platform": "linux",
+      "architecture": "aarch64",
+      "format": "deb",
+      "version": "3.4.0",
+      "file": "Astracct-Linux-3.4.0-aarch64.deb",
+      "bytes": 11755636,
+      "sha256": "f556b61492d6383ceffe3fe7b846d134cb0600334ac6f71d611e6682ed67f7ff",
+      "source": "https://github.com/southkite2023/quota-hub/releases/download/v3.4.0/Astracct-Linux-3.4.0-aarch64.deb",
+      "releaseUrl": "https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0",
+      "url": "https://yuashie.cn/downloads/astracct/v3.4.0/Astracct-Linux-3.4.0-aarch64.deb"
+    },
+    {
+      "platform": "linux",
+      "architecture": "aarch64",
+      "format": "rpm",
+      "version": "3.4.0",
+      "file": "Astracct-Linux-3.4.0-aarch64.rpm",
+      "bytes": 13635131,
+      "sha256": "8b0ec6f93ba23a5cb8b58c02fdc1e4e1b4141974b0fb2af64d60c4fd90bbb7fd",
+      "source": "https://github.com/southkite2023/quota-hub/releases/download/v3.4.0/Astracct-Linux-3.4.0-aarch64.rpm",
+      "releaseUrl": "https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0",
+      "url": "https://yuashie.cn/downloads/astracct/v3.4.0/Astracct-Linux-3.4.0-aarch64.rpm"
+    },
+    {
+      "platform": "linux",
+      "architecture": "aarch64",
+      "format": "tar.gz",
+      "version": "3.4.0",
+      "file": "Astracct-Linux-3.4.0-aarch64.tar.gz",
+      "bytes": 11868049,
+      "sha256": "1cbbb72216a3d84bf6ecd614601a89e70c5ae21f52f4ca364432abd306ba62e9",
+      "source": "https://github.com/southkite2023/quota-hub/releases/download/v3.4.0/Astracct-Linux-3.4.0-aarch64.tar.gz",
+      "releaseUrl": "https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0",
+      "url": "https://yuashie.cn/downloads/astracct/v3.4.0/Astracct-Linux-3.4.0-aarch64.tar.gz"
+    },
+    {
+      "platform": "linux",
+      "architecture": "x86_64",
+      "format": "AppImage",
+      "version": "3.4.0",
+      "file": "Astracct-Linux-3.4.0-x86_64.AppImage",
+      "bytes": 12311032,
+      "sha256": "3017226f2b9624dde7ea248f4a0a23005d7b52e9741f72e5c6f56d6c5f4d675d",
+      "source": "https://github.com/southkite2023/quota-hub/releases/download/v3.4.0/Astracct-Linux-3.4.0-x86_64.AppImage",
+      "releaseUrl": "https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0",
+      "url": "https://yuashie.cn/downloads/astracct/v3.4.0/Astracct-Linux-3.4.0-x86_64.AppImage"
+    },
+    {
+      "platform": "linux",
+      "architecture": "x86_64",
+      "format": "deb",
+      "version": "3.4.0",
+      "file": "Astracct-Linux-3.4.0-x86_64.deb",
+      "bytes": 12103680,
+      "sha256": "89d24cb811885ffcc90cae82c4bdb15ac7960f5723130ecb1799d42b993122a9",
+      "source": "https://github.com/southkite2023/quota-hub/releases/download/v3.4.0/Astracct-Linux-3.4.0-x86_64.deb",
+      "releaseUrl": "https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0",
+      "url": "https://yuashie.cn/downloads/astracct/v3.4.0/Astracct-Linux-3.4.0-x86_64.deb"
+    },
+    {
+      "platform": "linux",
+      "architecture": "x86_64",
+      "format": "rpm",
+      "version": "3.4.0",
+      "file": "Astracct-Linux-3.4.0-x86_64.rpm",
+      "bytes": 14028003,
+      "sha256": "b4fef41f024a98a24238c873a21c6231695999a9a230a3b833954540ab04605b",
+      "source": "https://github.com/southkite2023/quota-hub/releases/download/v3.4.0/Astracct-Linux-3.4.0-x86_64.rpm",
+      "releaseUrl": "https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0",
+      "url": "https://yuashie.cn/downloads/astracct/v3.4.0/Astracct-Linux-3.4.0-x86_64.rpm"
+    },
+    {
+      "platform": "linux",
+      "architecture": "x86_64",
+      "format": "tar.gz",
+      "version": "3.4.0",
+      "file": "Astracct-Linux-3.4.0-x86_64.tar.gz",
+      "bytes": 12297345,
+      "sha256": "b5543e121d119c9107ffb2489427ad962a9e5b9a9fcc49e91a8a84d8e6c8af80",
+      "source": "https://github.com/southkite2023/quota-hub/releases/download/v3.4.0/Astracct-Linux-3.4.0-x86_64.tar.gz",
+      "releaseUrl": "https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0",
+      "url": "https://yuashie.cn/downloads/astracct/v3.4.0/Astracct-Linux-3.4.0-x86_64.tar.gz"
+    }
+  ]
+}
