@@ -57,10 +57,15 @@ class DesktopRuntime extends ChangeNotifier with WindowListener, TrayListener {
     } catch (_) {
       error = '无法读取开机启动状态。';
     }
-    if (defaultTargetPlatform == TargetPlatform.windows) {
+    if (defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux) {
       try {
         trayManager.addListener(this);
-        await trayManager.setIcon('assets/tray.ico');
+        await trayManager.setIcon(
+          defaultTargetPlatform == TargetPlatform.linux
+              ? 'assets/app-icon.png'
+              : 'assets/tray.ico',
+        );
         await trayManager.setToolTip('星账 Astracct');
         await _updateTrayMenu();
         trayReady = true;
@@ -112,7 +117,8 @@ class DesktopRuntime extends ChangeNotifier with WindowListener, TrayListener {
     final current = systemText('设置');
     if (current == _lastLanguage ||
         !trayReady ||
-        defaultTargetPlatform != TargetPlatform.windows)
+        (defaultTargetPlatform != TargetPlatform.windows &&
+            defaultTargetPlatform != TargetPlatform.linux))
       return;
     _lastLanguage = current;
     _updateTrayMenu().catchError((Object _) {

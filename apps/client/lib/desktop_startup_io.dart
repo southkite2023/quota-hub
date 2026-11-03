@@ -11,7 +11,18 @@ String _xml(String value) => value
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&apos;');
 
+File get _linuxAgent => File(
+  '${Platform.environment['XDG_CONFIG_HOME'] ?? '${Platform.environment['HOME']}/.config'}/autostart/com.yuashie.astracct.desktop',
+);
+
+String linuxDesktopExec(String path) {
+  if (path.contains('\n') || path.contains('\r'))
+    throw ArgumentError('Invalid executable path');
+  return '"${path.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll(r'$', r'\$').replaceAll('`', r'\`').replaceAll('%', '%%')}"';
+}
+
 Future<bool> startupEnabled() async {
+  if (Platform.isLinux) return _linuxAgent.exists();
   if (Platform.isMacOS) return _agent.exists();
   if (Platform.isWindows) {
     final result = await Process.run('reg.exe', [
@@ -27,6 +38,19 @@ Future<bool> startupEnabled() async {
 
 Future<void> configureStartup(bool enabled) async {
   final executable = File(Platform.resolvedExecutable).absolute;
+  if (Platform.isLinux) {
+    if (enabled) {
+      final path = Platform.environment['APPIMAGE'] ?? executable.path;
+      await _linuxAgent.parent.create(recursive: true);
+      await _linuxAgent.writeAsString(
+        '[Desktop Entry]\nType=Application\nName=Astracct\nExec=${linuxDesktopExec(path)}\nTerminal=false\n',
+        flush: true,
+      );
+    } else if (await _linuxAgent.exists()) {
+      await _linuxAgent.delete();
+    }
+    return;
+  }
   if (Platform.isMacOS) {
     if (enabled) {
       final bundle = executable.parent.parent.parent.path;

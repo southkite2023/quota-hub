@@ -1,7 +1,7 @@
 name: quota_hub
 description: Quota Hub demo client driven by versioned snapshots.
 publish_to: none
-version: 3.3.0+23
+version: 3.4.0+24
 
 environment:
   sdk: '>=3.11.0 <4.0.0'
@@ -34,4 +34,5 @@ flutter:
     - assets/cases.json
     - assets/updater/
     - assets/tray.ico
+    - assets/app-icon.png
     - assets/LICENSE.txt

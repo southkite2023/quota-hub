@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-bool get isDesktopClient => !kIsWeb &&
+bool get isDesktopClient =>
+    !kIsWeb &&
     (defaultTargetPlatform == TargetPlatform.windows ||
-     defaultTargetPlatform == TargetPlatform.macOS);
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.linux);
