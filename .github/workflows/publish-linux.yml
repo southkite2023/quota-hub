@@ -1,0 +1,84 @@
+name: Verify and publish Linux 3.4.0
+on:
+  push:
+    branches: [feat/linux-release]
+    paths: ['.github/workflows/publish-linux.yml', 'scripts/linux/verify-packages.sh']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 41563412992
+          github-token: ${{ github.token }}
+          name: linux-${{ matrix.arch }}
+          path: candidate
+      - name: Prepare native validation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0t64 libsecret-1-0 libayatana-appindicator3-1 rpm2cpio cpio xvfb dbus-x11 gnome-keyring openbox xdotool imagemagick
+          mv candidate/linux-dist linux-dist
+          bash scripts/linux/verify-packages.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-verified-${{ matrix.arch }}
+          path: |
+            linux-dist/*.png
+            linux-dist/*.log
+            linux-dist/*.windows
+            linux-dist/elf.txt
+  publish:
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 41563412992
+          github-token: ${{ github.token }}
+          pattern: linux-*
+          path: candidates
+      - name: Verify immutable build source and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: southkite2023/quota-hub
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/$GH_REPO/actions/runs/41563412992 --jq .head_sha)" = d2ca4262d4a12e7dc3c3ef57f73a5f2d0c584eea
+          test "$(gh api repos/$GH_REPO/actions/runs/41563412992 --jq .conclusion)" = success
+          mkdir release
+          cp candidates/linux-*/linux-dist/* release/
+          cd release
+          sha256sum -c SHA256SUMS-x86_64.txt
+          sha256sum -c SHA256SUMS-aarch64.txt
+          test "$(find . -name 'Astracct-Linux-*' | wc -l)" = 8
+          cat SHA256SUMS-x86_64.txt SHA256SUMS-aarch64.txt > SHA256SUMS.txt
+          python3 -c 'import json,pathlib; p=list(pathlib.Path(".").glob("packages-*.json")); d=sum([json.loads(x.read_text()) for x in p],[]); assert len(d)==8; pathlib.Path("linux-packages.json").write_text(json.dumps(d,indent=2))'
+          cat > notes.md <<'EOF'
+          星账 Astracct 3.4.0+24 Linux 公开测试版。
+
+          新增 Linux 桌面窗口、托盘与开机启动。提供 x86_64 / ARM64 的 DEB、RPM、AppImage、tar.gz 八个包。其他平台继续使用 3.3.0。
+
+          两种原生架构均通过静态检查、客户端测试、构建、依赖检查与启动验证；四种包中可执行文件一致。独立验证已检查解压包和 AppImage 中的可见窗口。构建来源：41563412992，源码 d2ca4262d4a12e7dc3c3ef57f73a5f2d0c584eea。
+
+          系统要求：glibc 2.39+、GTK 3、libsecret、Ayatana AppIndicator、可用且已解锁的 Secret Service 密钥环。基线为 Ubuntu 24.04；其他发行版、真实账户与长期运行尚待验收。AppImage 不内置全部系统图形库，可使用 --appimage-extract-and-run 避免 FUSE 依赖。Linux 暂不支持系统身份解锁与自动安装更新，升级请手动安装并保留用户数据。桌面托盘依赖桌面环境支持。
+
+          DEB：sudo apt install ./包名.deb；RPM：sudo dnf install ./包名.rpm；tar.gz：完整解压后运行 ./astracct；AppImage：赋予执行权限后运行。SHA256SUMS.txt 提供全部安装包校验值。
+          EOF
+          gh release create v3.4.0 --target d2ca4262d4a12e7dc3c3ef57f73a5f2d0c584eea --title 'Astracct 3.4.0 Linux 公开测试版' --notes-file notes.md --draft
+          gh release upload v3.4.0 Astracct-Linux-* SHA256SUMS.txt linux-packages.json
+          gh release edit v3.4.0 --draft=false --latest

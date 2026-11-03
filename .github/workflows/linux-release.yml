@@ -2,6 +2,7 @@ name: Linux packages
 on:
   push:
     branches: [feat/linux-release]
+    paths: ['apps/client/**', 'scripts/linux/package.py']
   workflow_dispatch:
 permissions:
   contents: read
