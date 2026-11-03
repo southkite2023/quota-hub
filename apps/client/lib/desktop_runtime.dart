@@ -66,7 +66,9 @@ class DesktopRuntime extends ChangeNotifier with WindowListener, TrayListener {
               ? 'assets/app-icon.png'
               : 'assets/tray.ico',
         );
-        await trayManager.setToolTip('星账 Astracct');
+        if (defaultTargetPlatform == TargetPlatform.windows) {
+          await trayManager.setToolTip('星账 Astracct');
+        }
         await _updateTrayMenu();
         trayReady = true;
       } catch (_) {
@@ -150,6 +152,10 @@ class DesktopRuntime extends ChangeNotifier with WindowListener, TrayListener {
   Future<void> minimizeToTray() async {
     if (defaultTargetPlatform == TargetPlatform.macOS) {
       await macMenuChannel.invokeMethod<void>('minimizeToMenuBar');
+    } else if (defaultTargetPlatform == TargetPlatform.linux) {
+      // AppIndicator creation does not prove the desktop has a visible tray host.
+      // Keep a taskbar entry so closing never strands the application.
+      await windowManager.minimize();
     } else if (trayReady) {
       await windowManager.setSkipTaskbar(true);
       await windowManager.hide();
