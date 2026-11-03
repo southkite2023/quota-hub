@@ -93,3 +93,9 @@ ARM64 17,319,653 字节；通用 49,588,368 字节。实际公开包摘要见 [�
 [v3.1.0](https://github.com/southkite2023/quota-hub/releases/tag/v3.1.0) 已公开并设为 Latest。源码 `b5e8fe1aabe6e183e216abe51b8e9f0987c4fa14`，原生构建 `40647763486`、客户端检查 `40647763487`、服务端检查 `40647763505` 全部通过。发布运行 `40648411298` 完成实际 Windows/Mac 替换、重启、故障回退、DMG 检查及四种 APK 固定证书/版本 3.1.0/构建号 21 校验后公开七个安装包。完整摘要及来源见 Release 的 packages.json、SHA256SUMS.txt 与 provenance.json。
 
 发布成功后移除一次性高权限发布流程，保留标签中的完整来源。以后按用户明确要求完成检查后直接发布并同步官网，不再额外询问是否发布。
+
+## Linux 3.4.0+24（2026-11-03）
+
+[v3.4.0](https://github.com/southkite2023/quota-hub/releases/tag/v3.4.0) 公开 Linux 测试版：x86_64 / ARM64，各提供 DEB、RPM、AppImage、tar.gz；附 SHA256SUMS.txt 与 linux-packages.json。源码 6e880ec860c79f4afd8a4a9c3939efb735e2d9e5，构建、包验证和发布运行 41564346823。其他平台保持 3.3.0。
+
+要求 glibc 2.39+、GTK 3、libsecret、Ayatana AppIndicator 和可用的系统密钥环；验证基线 Ubuntu 24.04。其他发行版、真实凭据与长期后台行为待验收。关闭窗口保留任务栏入口；Linux 无系统身份解锁或自动安装更新，用户手动安装新版本。AppImage 仍需要系统图形库，可用 --appimage-extract-and-run。
