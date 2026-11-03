@@ -30,6 +30,7 @@ jobs:
         run: |
           flutter create --platforms=linux --project-name=quota_hub --no-pub .
           sed -i 's/set(BINARY_NAME "quota_hub")/set(BINARY_NAME "astracct")/; s/com.example.quota_hub/com.yuashie.astracct/' linux/CMakeLists.txt
+          rm -f analysis_options.yaml # flutter create adds a lint dependency absent from this project
           git restore -- pubspec.lock
           flutter pub get --enforce-lockfile
           flutter analyze
